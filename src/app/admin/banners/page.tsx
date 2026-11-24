@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Plus, Edit, Trash2, Image as ImageIcon } from 'lucide-react';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import Toast from '@/components/admin/Toast';
+import { useAdminLocale } from '@/lib/admin-i18n';
 
 interface BannerItem {
   id: number;
@@ -19,6 +20,7 @@ interface BannerItem {
 }
 
 export default function AdminBannersPage() {
+  const { t, isRtl } = useAdminLocale();
   const [banners, setBanners] = useState<BannerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -33,7 +35,7 @@ export default function AdminBannersPage() {
         setBanners(data.banners || []);
       }
     } catch {
-      setToast({ message: 'Failed to load banners', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -49,13 +51,13 @@ export default function AdminBannersPage() {
       const res = await fetch(`/api/banners/${deleteId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        setToast({ message: 'Banner deleted successfully', type: 'success' });
+        setToast({ message: t('slideDeletedSuccess'), type: 'success' });
         setBanners((prev) => prev.filter((b) => b.id !== deleteId));
       } else {
-        setToast({ message: data.error || 'Failed to delete banner', type: 'error' });
+        setToast({ message: data.error || t('error'), type: 'error' });
       }
     } catch {
-      setToast({ message: 'Error deleting banner', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setDeleteId(null);
     }
@@ -75,10 +77,10 @@ export default function AdminBannersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-            Homepage Hero Banners
+            {t('bannersTitle')}
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Manage the cinematic 3.5s rotating hero sliders, headlines, and background images.
+            {t('bannersSubtitle')}
           </p>
         </div>
         <Link
@@ -86,7 +88,7 @@ export default function AdminBannersPage() {
           className="inline-flex items-center gap-2 bg-[#F5C400] hover:bg-[#FFD429] text-black font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors shadow-lg shadow-[#F5C400]/10 w-fit"
         >
           <Plus className="w-4 h-4" />
-          <span>Add New Slide</span>
+          <span>{t('addNewSlide')}</span>
         </Link>
       </div>
 
@@ -95,25 +97,26 @@ export default function AdminBannersPage() {
         {loading ? (
           <div className="col-span-full py-12 text-center text-gray-500">
             <div className="w-8 h-8 border-3 border-[#F5C400] border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-            Loading hero slides...
+            {t('loading')}
           </div>
         ) : banners.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-gray-500 bg-[#151515] border border-[#262626] rounded-2xl p-8">
-            <ImageIcon className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            No hero slides found. Add your first slide above.
+          <div className="col-span-full bg-[#151515] border border-[#262626] rounded-2xl p-12 text-center text-gray-500">
+            <ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-30 text-[#F5C400]" />
+            <p>{t('noBannersFound')}</p>
           </div>
         ) : (
-          banners.map((b) => (
+          banners.map((banner) => (
             <div
-              key={b.id}
-              className="bg-[#151515] border border-[#262626] rounded-2xl overflow-hidden flex flex-col group hover:border-[#383838] transition-all"
+              key={banner.id}
+              className="bg-[#151515] border border-[#262626] rounded-2xl overflow-hidden shadow-xl flex flex-col group hover:border-[#3a3a3a] transition-all"
             >
-              <div className="relative aspect-[16/9] bg-[#0D0D0D] overflow-hidden">
-                {b.image_desktop ? (
+              {/* Image Preview */}
+              <div className="relative aspect-video w-full bg-[#1e1e1e] overflow-hidden">
+                {banner.image_desktop ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={b.image_desktop}
-                    alt={b.title_en || b.title_ar}
+                    src={banner.image_desktop}
+                    alt={banner.title_en || banner.title_ar || 'Hero Banner'}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 ) : (
@@ -121,50 +124,61 @@ export default function AdminBannersPage() {
                     <ImageIcon className="w-8 h-8" />
                   </div>
                 )}
-                <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                <div className="absolute top-3 right-3 flex items-center gap-2">
                   <span
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-md ${
-                      b.is_active
-                        ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                        : 'bg-gray-500/20 text-gray-300 border border-gray-500/30'
+                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full backdrop-blur-md ${
+                      banner.is_active
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/40'
+                        : 'bg-gray-500/20 text-gray-400 border border-gray-500/40'
                     }`}
                   >
-                    {b.is_active ? 'Active' : 'Draft'}
+                    {banner.is_active ? t('active') : t('inactive')}
                   </span>
-                  <span className="text-[11px] font-mono bg-black/60 text-[#F5C400] px-2 py-0.5 rounded-full border border-white/10">
-                    #{b.sort_order}
+                  <span className="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-full bg-black/60 text-[#F5C400] border border-[#F5C400]/30 backdrop-blur-md">
+                    #{banner.sort_order}
                   </span>
                 </div>
               </div>
 
-              <div className="p-4 flex-1 flex flex-col justify-between">
+              {/* Content */}
+              <div className="p-5 flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="font-bold text-white text-base truncate">
-                    {b.title_ar || b.title_en}
+                  <h3 className="text-base font-bold text-white line-clamp-1">
+                    {banner.title_ar || banner.title_en || 'بدون عنوان'}
                   </h3>
-                  <p className="text-xs text-[#F5C400] truncate mt-0.5">
-                    {b.title_en}
-                  </p>
-                  <p className="text-xs text-gray-400 line-clamp-2 mt-2">
-                    {b.description_ar || b.description_en}
-                  </p>
+                  {banner.title_en && banner.title_ar && (
+                    <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">
+                      {banner.title_en}
+                    </p>
+                  )}
+                  {(banner.description_ar || banner.description_en) && (
+                    <p className="text-xs text-gray-500 line-clamp-2 mt-2">
+                      {banner.description_ar || banner.description_en}
+                    </p>
+                  )}
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-[#222]">
-                  <Link
-                    href={`/admin/banners/${b.id}`}
-                    className="inline-flex items-center gap-1.5 text-xs text-gray-300 hover:text-[#F5C400] px-3 py-1.5 rounded-lg bg-[#222] hover:bg-[#2a2a2a] transition-colors"
-                  >
-                    <Edit className="w-3.5 h-3.5" />
-                    <span>Edit</span>
-                  </Link>
-                  <button
-                    onClick={() => setDeleteId(b.id)}
-                    className="inline-flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete</span>
-                  </button>
+                {/* Card Actions */}
+                <div className="flex items-center justify-between pt-4 mt-4 border-t border-[#222]">
+                  <span className="text-xs text-gray-500">
+                    {banner.image_mobile ? 'سطح المكتب + الهاتف' : 'سطح المكتب'}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/admin/banners/${banner.id}`}
+                      className="p-1.5 text-gray-400 hover:text-[#F5C400] hover:bg-[#252525] rounded-lg transition-colors"
+                      title={t('edit')}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Link>
+                    <button
+                      onClick={() => setDeleteId(banner.id)}
+                      className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                      title={t('delete')}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -174,10 +188,10 @@ export default function AdminBannersPage() {
 
       <ConfirmDialog
         isOpen={deleteId !== null}
-        title="Delete Hero Slide"
-        message="Are you sure you want to remove this banner slide from the homepage hero carousel?"
-        confirmLabel="Yes, Delete"
-        cancelLabel="Cancel"
+        title={t('deleteBannerTitle')}
+        message={t('deleteBannerMsg')}
+        confirmLabel={t('yesDelete')}
+        cancelLabel={t('cancel')}
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
       />

@@ -17,6 +17,7 @@ import {
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import Toast from '@/components/admin/Toast';
 import { getWhatsAppUrl, getPhoneUrl } from '@/lib/utils';
+import { useAdminLocale } from '@/lib/admin-i18n';
 
 interface EquipmentRequestItem {
   id: number;
@@ -35,6 +36,7 @@ interface EquipmentRequestItem {
 }
 
 export default function AdminRequestsPage() {
+  const { t, isRtl } = useAdminLocale();
   const [requests, setRequests] = useState<EquipmentRequestItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -57,7 +59,7 @@ export default function AdminRequestsPage() {
         setRequests(data.requests || []);
       }
     } catch {
-      setToast({ message: 'Failed to fetch customer requests', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -85,10 +87,10 @@ export default function AdminRequestsPage() {
         setRequests((prev) =>
           prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
         );
-        setToast({ message: 'Request status updated', type: 'success' });
+        setToast({ message: t('requestStatusUpdated'), type: 'success' });
       }
     } catch {
-      setToast({ message: 'Failed to update status', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     }
   };
 
@@ -107,10 +109,10 @@ export default function AdminRequestsPage() {
         setRequests((prev) =>
           prev.map((r) => (r.id === id ? { ...r, admin_notes: notes } : r))
         );
-        setToast({ message: 'Internal notes saved', type: 'success' });
+        setToast({ message: t('notesSavedSuccess'), type: 'success' });
       }
     } catch {
-      setToast({ message: 'Failed to save notes', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     }
   };
 
@@ -120,15 +122,27 @@ export default function AdminRequestsPage() {
       const res = await fetch(`/api/requests/${deleteId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        setToast({ message: 'Request deleted successfully', type: 'success' });
+        setToast({ message: t('success'), type: 'success' });
         setRequests((prev) => prev.filter((r) => r.id !== deleteId));
+      } else {
+        setToast({ message: data.error || t('error'), type: 'error' });
       }
     } catch {
-      setToast({ message: 'Failed to delete request', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setDeleteId(null);
     }
   };
+
+  const filterTabs = [
+    { key: 'all', label: isRtl ? 'الكل' : 'All' },
+    { key: 'new', label: t('statusNew') },
+    { key: 'under_review', label: t('statusReview') },
+    { key: 'available', label: t('statusAvailable') },
+    { key: 'contacted', label: t('statusContacted') },
+    { key: 'completed', label: t('statusCompleted') },
+    { key: 'cancelled', label: t('statusCancelled') },
+  ];
 
   return (
     <div className="space-y-6">
@@ -143,10 +157,10 @@ export default function AdminRequestsPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-          Customer Equipment Requests
+          {t('requestsTitle')}
         </h1>
         <p className="text-sm text-gray-400 mt-1">
-          Inquiries from customers looking for specific heavy machinery not currently in stock.
+          {t('requestsSubtitle')}
         </p>
       </div>
 
@@ -158,27 +172,25 @@ export default function AdminRequestsPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by customer, phone, ref, equipment..."
+            placeholder={t('searchRequestsPlaceholder')}
             className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#F5C400]"
           />
         </form>
 
         <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-          {['all', 'new', 'under_review', 'available', 'contacted', 'completed', 'cancelled'].map(
-            (s) => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`text-xs px-3 py-1.5 rounded-xl capitalize font-medium whitespace-nowrap transition-colors ${
-                  statusFilter === s
-                    ? 'bg-[#F5C400] text-black font-semibold'
-                    : 'bg-[#0D0D0D] text-gray-400 hover:text-white border border-[#222]'
-                }`}
-              >
-                {s.replace('_', ' ')}
-              </button>
-            )
-          )}
+          {filterTabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setStatusFilter(tab.key)}
+              className={`text-xs px-3 py-1.5 rounded-xl font-medium whitespace-nowrap transition-colors ${
+                statusFilter === tab.key
+                  ? 'bg-[#F5C400] text-black font-semibold'
+                  : 'bg-[#0D0D0D] text-gray-400 hover:text-white border border-[#222]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -187,12 +199,12 @@ export default function AdminRequestsPage() {
         {loading ? (
           <div className="py-12 text-center text-gray-500">
             <div className="w-8 h-8 border-3 border-[#F5C400] border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-            Loading customer requests...
+            {t('loading')}
           </div>
         ) : requests.length === 0 ? (
           <div className="py-12 text-center text-gray-500 bg-[#151515] border border-[#262626] rounded-2xl p-8">
-            <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            No equipment requests found for this filter.
+            <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-30 text-[#F5C400]" />
+            {t('noRequestsFound')}
           </div>
         ) : (
           requests.map((r) => {
@@ -220,15 +232,15 @@ export default function AdminRequestsPage() {
                         <h3 className="font-bold text-white text-base">
                           {r.customer_name}
                         </h3>
-                        <span className="text-xs text-gray-400 font-mono">
+                        <span className="text-xs text-gray-400 font-mono" dir="ltr">
                           {r.phone}
                         </span>
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-400">
-                        <span>Equipment: <strong className="text-white">{r.equipment_name || 'Not specified'}</strong></span>
-                        {r.brand && <span>• Brand: <strong className="text-gray-300">{r.brand}</strong></span>}
-                        {r.model && <span>• Model: <strong className="text-gray-300">{r.model}</strong></span>}
-                        <span>• Date: {new Date(r.created_at).toLocaleDateString()}</span>
+                        <span>{t('desiredEquipment')}: <strong className="text-white">{r.equipment_name || '—'}</strong></span>
+                        {r.brand && <span>• {t('desiredBrand')}: <strong className="text-gray-300">{r.brand}</strong></span>}
+                        {r.model && <span>• {t('desiredModel')}: <strong className="text-gray-300">{r.model}</strong></span>}
+                        <span>• {t('requestDate')}: {new Date(r.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
@@ -252,12 +264,12 @@ export default function AdminRequestsPage() {
                           : 'bg-red-500/15 text-red-400 border-red-500/30'
                       }`}
                     >
-                      <option value="new">New (جديد)</option>
-                      <option value="under_review">Under Review (قيد المراجعة)</option>
-                      <option value="available">Available (متوفر الآن)</option>
-                      <option value="contacted">Contacted (تم التواصل)</option>
-                      <option value="completed">Completed (مكتمل)</option>
-                      <option value="cancelled">Cancelled (ملغي)</option>
+                      <option value="new">{t('statusNew')}</option>
+                      <option value="under_review">{t('statusReview')}</option>
+                      <option value="available">{t('statusAvailable')}</option>
+                      <option value="contacted">{t('statusContacted')}</option>
+                      <option value="completed">{t('statusCompleted')}</option>
+                      <option value="cancelled">{t('statusCancelled')}</option>
                     </select>
 
                     <a
@@ -265,25 +277,25 @@ export default function AdminRequestsPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#25D366] border border-[#25D366]/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
-                      title="Open WhatsApp chat with customer"
+                      title={t('whatsappChat')}
                     >
                       <MessageSquare className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">WhatsApp</span>
+                      <span className="hidden sm:inline">{t('whatsappChat')}</span>
                     </a>
 
                     <a
                       href={callUrl}
                       className="inline-flex items-center gap-1.5 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 border border-sky-500/30 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
-                      title="Call customer directly"
+                      title={t('callNow')}
                     >
                       <PhoneCall className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Call</span>
+                      <span className="hidden sm:inline">{t('callNow')}</span>
                     </a>
 
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : r.id)}
                       className="p-1.5 text-gray-400 hover:text-white bg-[#222] rounded-xl transition-colors"
-                      title={isExpanded ? 'Collapse' : 'Expand Details'}
+                      title={t('details')}
                     >
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
@@ -291,7 +303,7 @@ export default function AdminRequestsPage() {
                     <button
                       onClick={() => setDeleteId(r.id)}
                       className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
-                      title="Delete"
+                      title={t('delete')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -303,28 +315,28 @@ export default function AdminRequestsPage() {
                   <div className="bg-[#0D0D0D] p-5 border-t border-[#222] grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-gray-300">
                     <div className="space-y-3">
                       <h4 className="font-bold text-white uppercase tracking-wider text-[11px]">
-                        Customer Specifications & Notes
+                        {isRtl ? 'المواصفات وملاحظات العميل' : 'Customer Specifications & Notes'}
                       </h4>
                       {r.specs && (
                         <div className="p-3 bg-[#151515] rounded-xl border border-[#222]">
-                          <strong className="text-gray-400 block mb-1">Desired Specifications:</strong>
+                          <strong className="text-gray-400 block mb-1">{isRtl ? 'المواصفات المطلوبة:' : 'Desired Specifications:'}</strong>
                           <p className="whitespace-pre-wrap">{r.specs}</p>
                         </div>
                       )}
                       {r.notes && (
                         <div className="p-3 bg-[#151515] rounded-xl border border-[#222]">
-                          <strong className="text-gray-400 block mb-1">Customer Notes:</strong>
+                          <strong className="text-gray-400 block mb-1">{isRtl ? 'ملاحظات العميل:' : 'Customer Notes:'}</strong>
                           <p className="whitespace-pre-wrap">{r.notes}</p>
                         </div>
                       )}
                       {!r.specs && !r.notes && (
-                        <p className="text-gray-500 italic">No extra notes provided by customer.</p>
+                        <p className="text-gray-500 italic">{isRtl ? 'لا توجد ملاحظات إضافية من العميل.' : 'No extra notes provided by customer.'}</p>
                       )}
                     </div>
 
                     <div className="space-y-3">
                       <h4 className="font-bold text-white uppercase tracking-wider text-[11px]">
-                        Internal Staff / Admin Notes
+                        {t('internalNotes')}
                       </h4>
                       <textarea
                         rows={3}
@@ -332,7 +344,7 @@ export default function AdminRequestsPage() {
                         onChange={(e) =>
                           setEditingNotes((prev) => ({ ...prev, [r.id]: e.target.value }))
                         }
-                        placeholder="Write internal notes about negotiations, sourcing progress, or quotes..."
+                        placeholder={t('notesPlaceholder')}
                         className="w-full bg-[#151515] border border-[#262626] rounded-xl p-3 text-xs text-white focus:outline-none focus:border-[#F5C400]"
                       ></textarea>
                       <div className="flex justify-end">
@@ -341,7 +353,7 @@ export default function AdminRequestsPage() {
                           onClick={() => handleSaveNotes(r.id)}
                           className="bg-[#F5C400] text-black font-semibold px-4 py-1.5 rounded-lg text-xs hover:bg-[#FFD429] transition-colors"
                         >
-                          Save Admin Notes
+                          {t('saveNotes')}
                         </button>
                       </div>
                     </div>
@@ -355,10 +367,10 @@ export default function AdminRequestsPage() {
 
       <ConfirmDialog
         isOpen={deleteId !== null}
-        title="Delete Request"
-        message="Are you sure you want to permanently delete this customer request?"
-        confirmLabel="Yes, Delete"
-        cancelLabel="Cancel"
+        title={t('deleteRequestTitle')}
+        message={t('deleteRequestMsg')}
+        confirmLabel={t('yesDelete')}
+        cancelLabel={t('cancel')}
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
       />

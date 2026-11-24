@@ -14,19 +14,11 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Globe,
+  ExternalLink,
 } from 'lucide-react';
 import { useState } from 'react';
-
-const navItems = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/equipment', label: 'Equipment', icon: Truck },
-  { href: '/admin/categories', label: 'Categories', icon: FolderTree },
-  { href: '/admin/banners', label: 'Banners', icon: ImageIcon },
-  { href: '/admin/branches', label: 'Branches', icon: MapPin },
-  { href: '/admin/social', label: 'Social Links', icon: Share2 },
-  { href: '/admin/requests', label: 'Requests', icon: MessageSquare },
-  { href: '/admin/settings', label: 'Settings', icon: Settings },
-];
+import { useAdminLocale } from '@/lib/admin-i18n';
 
 interface SidebarProps {
   username: string;
@@ -35,6 +27,18 @@ interface SidebarProps {
 export default function Sidebar({ username }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { locale, toggleLocale, t, isRtl } = useAdminLocale();
+
+  const navItems = [
+    { href: '/admin/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/admin/equipment', label: t('equipment'), icon: Truck },
+    { href: '/admin/categories', label: t('categories'), icon: FolderTree },
+    { href: '/admin/banners', label: t('banners'), icon: ImageIcon },
+    { href: '/admin/branches', label: t('branches'), icon: MapPin },
+    { href: '/admin/social', label: t('social'), icon: Share2 },
+    { href: '/admin/requests', label: t('requests'), icon: MessageSquare },
+    { href: '/admin/settings', label: t('settings'), icon: Settings },
+  ];
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -42,65 +46,110 @@ export default function Sidebar({ username }: SidebarProps) {
   };
 
   return (
-    <aside className={`bg-[#151515] border-r border-[#222] flex flex-col h-screen sticky top-0 transition-all duration-300 ${collapsed ? 'w-[68px]' : 'w-[240px]'}`}>
+    <aside
+      className={`bg-[#151515] ${
+        isRtl ? 'border-l' : 'border-r'
+      } border-[#222] flex flex-col h-screen sticky top-0 transition-all duration-300 z-30 ${
+        collapsed ? 'w-[72px]' : 'w-[250px]'
+      }`}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-5 border-b border-[#222]">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-[#222]">
         {!collapsed && (
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 bg-[#F5C400] rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-black font-bold text-sm">AT</span>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 bg-gradient-to-tr from-[#F5C400] to-[#FFD429] rounded-lg flex items-center justify-center flex-shrink-0 text-black font-extrabold text-sm shadow">
+              ط
             </div>
-            <span className="text-white font-semibold text-sm truncate">Al Tayeb Admin</span>
+            <div className="min-w-0">
+              <span className="text-white font-bold text-sm block truncate">
+                {isRtl ? 'إدارة الطيب' : 'Al Tayeb Admin'}
+              </span>
+              <span className="text-[10px] text-[#F5C400] block truncate">
+                {isRtl ? 'لوحة التحكم' : 'Control Center'}
+              </span>
+            </div>
           </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-lg bg-[#1a1a1a] hover:bg-[#252525] text-[#B8B8B8] hover:text-white flex-shrink-0"
+          className="p-1.5 rounded-lg bg-[#1a1a1a] hover:bg-[#252525] text-gray-400 hover:text-white flex-shrink-0"
+          title={collapsed ? 'توسيع' : 'طي'}
         >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {collapsed ? (
+            isRtl ? <ChevronLeft size={16} /> : <ChevronRight size={16} />
+          ) : (
+            isRtl ? <ChevronRight size={16} /> : <ChevronLeft size={16} />
+          )}
+        </button>
+      </div>
+
+      {/* Language Switcher Button in Sidebar */}
+      <div className="px-3 pt-3">
+        <button
+          onClick={toggleLocale}
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-[#1A1A1A] hover:bg-[#222] border border-[#2a2a2a] rounded-xl text-xs font-bold text-gray-300 hover:text-[#F5C400] transition-colors"
+          title={isRtl ? 'التبديل إلى الإنجليزية' : 'Switch to Arabic'}
+        >
+          <Globe size={14} className="text-[#F5C400]" />
+          {!collapsed && (
+            <span className="tracking-wide">
+              {locale === 'ar' ? 'English (EN)' : 'العربية (AR)'}
+            </span>
+          )}
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-3 px-2 overflow-y-auto">
-        {navItems.map(item => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+      <nav className="flex-1 py-4 px-3 space-y-1.5 overflow-y-auto scrollbar-none">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(item.href));
+
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg mb-0.5 transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                 isActive
-                  ? 'bg-[#F5C400]/10 text-[#F5C400]'
-                  : 'text-[#B8B8B8] hover:bg-[#1a1a1a] hover:text-white'
+                  ? 'bg-[#F5C400] text-black shadow-lg shadow-[#F5C400]/20 font-bold'
+                  : 'text-gray-400 hover:text-white hover:bg-[#1f1f1f]'
               }`}
               title={collapsed ? item.label : undefined}
             >
-              <item.icon size={20} className="flex-shrink-0" />
-              {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+              <Icon size={18} className="flex-shrink-0" />
+              {!collapsed && <span className="truncate">{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-[#222] p-3">
-        {!collapsed && (
-          <div className="flex items-center gap-2 px-3 py-2 mb-1">
-            <div className="w-7 h-7 bg-[#F5C400]/20 rounded-full flex items-center justify-center">
-              <span className="text-[#F5C400] text-xs font-bold">{username.charAt(0).toUpperCase()}</span>
-            </div>
-            <span className="text-white text-sm truncate">{username}</span>
-          </div>
-        )}
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors"
-          title={collapsed ? 'Logout' : undefined}
+      {/* Footer / User & Logout */}
+      <div className="p-3 border-t border-[#222] space-y-2">
+        <Link
+          href="/"
+          target="_blank"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-gray-400 hover:text-[#F5C400] hover:bg-[#1a1a1a] transition-colors w-full"
+          title={t('viewWebsite')}
         >
-          <LogOut size={20} className="flex-shrink-0" />
-          {!collapsed && <span className="text-sm font-medium">Logout</span>}
-        </button>
+          <ExternalLink size={16} className="flex-shrink-0" />
+          {!collapsed && <span>{t('viewWebsite')}</span>}
+        </Link>
+
+        <div className="flex items-center justify-between pt-1">
+          {!collapsed && (
+            <div className="min-w-0 pr-2 rtl:pr-0 rtl:pl-2">
+              <p className="text-white text-xs font-semibold truncate">{username}</p>
+              <p className="text-gray-500 text-[10px]">{isRtl ? 'مسؤول النظام' : 'Administrator'}</p>
+            </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
+            title={t('logout')}
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
       </div>
     </aside>
   );

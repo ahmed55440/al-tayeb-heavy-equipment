@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, ArrowLeft } from 'lucide-react';
+import { Save, ArrowLeft, ArrowRight } from 'lucide-react';
 import ImageUploader from '@/components/admin/ImageUploader';
 import Toast from '@/components/admin/Toast';
+import { useAdminLocale } from '@/lib/admin-i18n';
 
 interface CategoryData {
   id?: number;
@@ -25,6 +26,7 @@ interface CategoryFormProps {
 
 export default function CategoryForm({ initialData, isEdit }: CategoryFormProps) {
   const router = useRouter();
+  const { t, isRtl } = useAdminLocale();
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -54,7 +56,7 @@ export default function CategoryForm({ initialData, isEdit }: CategoryFormProps)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name_ar && !formData.name_en) {
-      setToast({ message: 'Category name is required', type: 'error' });
+      setToast({ message: t('nameAr'), type: 'error' });
       return;
     }
 
@@ -73,21 +75,23 @@ export default function CategoryForm({ initialData, isEdit }: CategoryFormProps)
 
       if (data.success) {
         setToast({
-          message: isEdit ? 'Category updated successfully!' : 'Category created successfully!',
+          message: isEdit ? t('categoryUpdatedSuccess') : t('categoryCreatedSuccess'),
           type: 'success',
         });
         setTimeout(() => {
           router.push('/admin/categories');
         }, 1000);
       } else {
-        setToast({ message: data.error || 'Failed to save category', type: 'error' });
+        setToast({ message: data.error || t('error'), type: 'error' });
       }
     } catch {
-      setToast({ message: 'Error submitting category', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setLoading(false);
     }
   };
+
+  const BackIcon = isRtl ? ArrowRight : ArrowLeft;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
@@ -106,8 +110,8 @@ export default function CategoryForm({ initialData, isEdit }: CategoryFormProps)
           onClick={() => router.back()}
           className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Categories</span>
+          <BackIcon className="w-4 h-4" />
+          <span>{t('back')}</span>
         </button>
 
         <button
@@ -120,18 +124,18 @@ export default function CategoryForm({ initialData, isEdit }: CategoryFormProps)
           ) : (
             <Save className="w-4 h-4" />
           )}
-          <span>{isEdit ? 'Save Changes' : 'Create Category'}</span>
+          <span>{isEdit ? t('saveChanges') : t('addNewCategory')}</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-6">
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Category Names</h2>
+            <h2 className="text-base font-bold text-white mb-2">{t('categoryNamesSection')}</h2>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Category Name (Arabic) *
+                {t('categoryNameAr')}
               </label>
               <input
                 type="text"
@@ -147,13 +151,14 @@ export default function CategoryForm({ initialData, isEdit }: CategoryFormProps)
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Category Name (English)
+                {t('categoryNameEn')}
               </label>
               <input
                 type="text"
                 name="name_en"
                 value={formData.name_en}
                 onChange={handleChange}
+                dir="ltr"
                 placeholder="e.g. Wheel Loaders"
                 className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
               />
@@ -161,25 +166,22 @@ export default function CategoryForm({ initialData, isEdit }: CategoryFormProps)
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Custom URL Slug (Optional)
+                {t('customSlug')}
               </label>
               <input
                 type="text"
                 name="slug"
                 value={formData.slug}
                 onChange={handleChange}
-                placeholder="wheel-loaders"
-                className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
+                placeholder="loaders"
+                dir="ltr"
+                className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400] font-mono"
               />
             </div>
-          </div>
-
-          <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Descriptions</h2>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Description (Arabic)
+                {t('descriptionAr')}
               </label>
               <textarea
                 name="description_ar"
@@ -187,34 +189,45 @@ export default function CategoryForm({ initialData, isEdit }: CategoryFormProps)
                 value={formData.description_ar}
                 onChange={handleChange}
                 dir="rtl"
-                placeholder="وصف الفئة ونوعية المعدات التابعة لها..."
-                className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
-              ></textarea>
+                placeholder="نبذة عن معدات هذه الفئة واستخداماتها..."
+                className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400] resize-none"
+              />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Description (English)
+                {t('descriptionEn')}
               </label>
               <textarea
                 name="description_en"
                 rows={3}
                 value={formData.description_en}
                 onChange={handleChange}
-                placeholder="Category overview and types of equipment..."
-                className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
-              ></textarea>
+                dir="ltr"
+                placeholder="Category overview and machine specifications..."
+                className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400] resize-none"
+              />
             </div>
           </div>
         </div>
 
+        {/* Sidebar Controls */}
         <div className="space-y-6">
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Settings</h2>
+            <h2 className="text-base font-bold text-white mb-2">{t('categoryCoverImg')}</h2>
+            <ImageUploader
+              value={formData.image}
+              onChange={(url) => setFormData((prev) => ({ ...prev, image: url }))}
+              label={t('categoryCoverImg')}
+            />
+          </div>
+
+          <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
+            <h2 className="text-base font-bold text-white mb-2">{t('categorySettingsSection')}</h2>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Sort Order (Display priority)
+                {t('sortOrder')}
               </label>
               <input
                 type="number"
@@ -225,27 +238,18 @@ export default function CategoryForm({ initialData, isEdit }: CategoryFormProps)
               />
             </div>
 
-            <label className="flex items-center gap-3 cursor-pointer pt-2">
-              <input
-                type="checkbox"
-                name="is_active"
-                checked={formData.is_active}
-                onChange={handleChange}
-                className="w-4 h-4 rounded text-[#F5C400] focus:ring-[#F5C400] bg-[#0D0D0D] border-gray-700"
-              />
-              <span className="text-sm text-gray-300">Active (Visible in menu & site)</span>
-            </label>
-          </div>
-
-          <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Category Cover Image</h2>
-            <ImageUploader
-              images={formData.image ? [formData.image] : []}
-              onChange={(urls) => setFormData((prev) => ({ ...prev, image: urls[0] || '' }))}
-              type="categories"
-              single={true}
-              maxImages={1}
-            />
+            <div className="pt-2">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="is_active"
+                  checked={formData.is_active}
+                  onChange={handleChange}
+                  className="w-4 h-4 rounded border-gray-700 text-[#F5C400] focus:ring-[#F5C400] bg-[#0D0D0D]"
+                />
+                <span className="text-sm font-medium text-white">{t('active')}</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>

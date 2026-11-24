@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, ArrowLeft } from 'lucide-react';
+import { Save, ArrowLeft, ArrowRight } from 'lucide-react';
 import ImageUploader from '@/components/admin/ImageUploader';
 import Toast from '@/components/admin/Toast';
+import { useAdminLocale } from '@/lib/admin-i18n';
 
 interface BannerData {
   id?: number;
@@ -25,6 +26,7 @@ interface BannerFormProps {
 
 export default function BannerForm({ initialData, isEdit }: BannerFormProps) {
   const router = useRouter();
+  const { t, isRtl } = useAdminLocale();
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -54,7 +56,7 @@ export default function BannerForm({ initialData, isEdit }: BannerFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.image_desktop) {
-      setToast({ message: 'Desktop image is required', type: 'error' });
+      setToast({ message: t('desktopImg'), type: 'error' });
       return;
     }
 
@@ -73,21 +75,23 @@ export default function BannerForm({ initialData, isEdit }: BannerFormProps) {
 
       if (data.success) {
         setToast({
-          message: isEdit ? 'Banner updated successfully!' : 'Banner created successfully!',
+          message: isEdit ? t('slideUpdatedSuccess') : t('slideCreatedSuccess'),
           type: 'success',
         });
         setTimeout(() => {
           router.push('/admin/banners');
         }, 1000);
       } else {
-        setToast({ message: data.error || 'Failed to save banner', type: 'error' });
+        setToast({ message: data.error || t('error'), type: 'error' });
       }
     } catch {
-      setToast({ message: 'Error submitting banner', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setLoading(false);
     }
   };
+
+  const BackIcon = isRtl ? ArrowRight : ArrowLeft;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
@@ -106,8 +110,8 @@ export default function BannerForm({ initialData, isEdit }: BannerFormProps) {
           onClick={() => router.back()}
           className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Hero Banners</span>
+          <BackIcon className="w-4 h-4" />
+          <span>{t('back')}</span>
         </button>
 
         <button
@@ -120,18 +124,18 @@ export default function BannerForm({ initialData, isEdit }: BannerFormProps) {
           ) : (
             <Save className="w-4 h-4" />
           )}
-          <span>{isEdit ? 'Save Changes' : 'Create Slide'}</span>
+          <span>{isEdit ? t('saveChanges') : t('addNewSlide')}</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-2 space-y-6">
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Headline & Subtitle</h2>
+            <h2 className="text-base font-bold text-white mb-2">{t('bannersTitle')}</h2>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Headline Title (Arabic)
+                {t('headlineAr')}
               </label>
               <input
                 type="text"
@@ -146,13 +150,14 @@ export default function BannerForm({ initialData, isEdit }: BannerFormProps) {
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Headline Title (English)
+                {t('headlineEn')}
               </label>
               <input
                 type="text"
                 name="title_en"
                 value={formData.title_en}
                 onChange={handleChange}
+                dir="ltr"
                 placeholder="Al Tayeb Heavy Equipment"
                 className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
               />
@@ -160,7 +165,7 @@ export default function BannerForm({ initialData, isEdit }: BannerFormProps) {
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Description / Subtitle (Arabic)
+                {t('subtitleAr')}
               </label>
               <textarea
                 name="description_ar"
@@ -168,34 +173,54 @@ export default function BannerForm({ initialData, isEdit }: BannerFormProps) {
                 value={formData.description_ar}
                 onChange={handleChange}
                 dir="rtl"
-                placeholder="نوفر لك المعدات التي تحتاجها بأفضل الاختيارات..."
-                className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
-              ></textarea>
+                placeholder="نوفر لك أحدث المعدات بأفضل الأسعار..."
+                className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400] resize-none"
+              />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Description / Subtitle (English)
+                {t('subtitleEn')}
               </label>
               <textarea
                 name="description_en"
                 rows={3}
                 value={formData.description_en}
                 onChange={handleChange}
-                placeholder="Discover quality heavy machinery for your business..."
-                className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
-              ></textarea>
+                dir="ltr"
+                placeholder="Discover premium heavy machinery fleet..."
+                className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400] resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
+            <h2 className="text-base font-bold text-white mb-2">{t('desktopImg')}</h2>
+            <ImageUploader
+              value={formData.image_desktop}
+              onChange={(url) => setFormData((prev) => ({ ...prev, image_desktop: url }))}
+              label={t('desktopImg')}
+            />
+
+            <div className="pt-4 border-t border-[#222]">
+              <h2 className="text-base font-bold text-white mb-2">{t('mobileImg')}</h2>
+              <ImageUploader
+                value={formData.image_mobile}
+                onChange={(url) => setFormData((prev) => ({ ...prev, image_mobile: url }))}
+                label={t('mobileImg')}
+              />
             </div>
           </div>
         </div>
 
+        {/* Sidebar Controls */}
         <div className="space-y-6">
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Slide Settings</h2>
+            <h2 className="text-base font-bold text-white mb-2">{t('sortOrder')}</h2>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Slide Order (Sequence)
+                {t('sortOrder')}
               </label>
               <input
                 type="number"
@@ -206,38 +231,18 @@ export default function BannerForm({ initialData, isEdit }: BannerFormProps) {
               />
             </div>
 
-            <label className="flex items-center gap-3 cursor-pointer pt-2">
-              <input
-                type="checkbox"
-                name="is_active"
-                checked={formData.is_active}
-                onChange={handleChange}
-                className="w-4 h-4 rounded text-[#F5C400] focus:ring-[#F5C400] bg-[#0D0D0D] border-gray-700"
-              />
-              <span className="text-sm text-gray-300">Active (Visible in hero carousel)</span>
-            </label>
-          </div>
-
-          <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Desktop Banner Image *</h2>
-            <ImageUploader
-              images={formData.image_desktop ? [formData.image_desktop] : []}
-              onChange={(urls) => setFormData((prev) => ({ ...prev, image_desktop: urls[0] || '' }))}
-              type="banners"
-              single={true}
-              maxImages={1}
-            />
-          </div>
-
-          <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Mobile Banner Image (Optional)</h2>
-            <ImageUploader
-              images={formData.image_mobile ? [formData.image_mobile] : []}
-              onChange={(urls) => setFormData((prev) => ({ ...prev, image_mobile: urls[0] || '' }))}
-              type="banners"
-              single={true}
-              maxImages={1}
-            />
+            <div className="pt-2">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="is_active"
+                  checked={formData.is_active}
+                  onChange={handleChange}
+                  className="w-4 h-4 rounded border-gray-700 text-[#F5C400] focus:ring-[#F5C400] bg-[#0D0D0D]"
+                />
+                <span className="text-sm font-medium text-white">{t('active')}</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>

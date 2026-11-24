@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, Share2, ExternalLink, X } from 'lucide-react';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import Toast from '@/components/admin/Toast';
+import { useAdminLocale } from '@/lib/admin-i18n';
 
 interface SocialItem {
   id: number;
@@ -15,6 +16,7 @@ interface SocialItem {
 }
 
 export default function AdminSocialPage() {
+  const { t, isRtl } = useAdminLocale();
   const [links, setLinks] = useState<SocialItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -39,7 +41,7 @@ export default function AdminSocialPage() {
         setLinks(data.links || []);
       }
     } catch {
-      setToast({ message: 'Failed to load social links', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -76,7 +78,7 @@ export default function AdminSocialPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.url) {
-      setToast({ message: 'URL is required', type: 'error' });
+      setToast({ message: t('targetUrl'), type: 'error' });
       return;
     }
 
@@ -93,16 +95,16 @@ export default function AdminSocialPage() {
       const data = await res.json();
       if (data.success) {
         setToast({
-          message: editingLink ? 'Social link updated!' : 'Social link added!',
+          message: editingLink ? t('socialUpdatedSuccess') : t('socialCreatedSuccess'),
           type: 'success',
         });
         setModalOpen(false);
         fetchLinks();
       } else {
-        setToast({ message: data.error || 'Failed to save', type: 'error' });
+        setToast({ message: data.error || t('error'), type: 'error' });
       }
     } catch {
-      setToast({ message: 'Error saving social link', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     }
   };
 
@@ -112,13 +114,13 @@ export default function AdminSocialPage() {
       const res = await fetch(`/api/social-links/${deleteId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        setToast({ message: 'Social link removed', type: 'success' });
+        setToast({ message: t('socialDeletedSuccess'), type: 'success' });
         setLinks((prev) => prev.filter((l) => l.id !== deleteId));
       } else {
-        setToast({ message: data.error || 'Failed to delete', type: 'error' });
+        setToast({ message: data.error || t('error'), type: 'error' });
       }
     } catch {
-      setToast({ message: 'Error deleting', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setDeleteId(null);
     }
@@ -138,10 +140,10 @@ export default function AdminSocialPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-            Social Media & External Links
+            {t('socialTitle')}
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Connect your showroom channels (Facebook, Instagram, TikTok, YouTube, etc.).
+            {t('socialSubtitle')}
           </p>
         </div>
         <button
@@ -149,7 +151,7 @@ export default function AdminSocialPage() {
           className="inline-flex items-center gap-2 bg-[#F5C400] hover:bg-[#FFD429] text-black font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors shadow-lg shadow-[#F5C400]/10 w-fit"
         >
           <Plus className="w-4 h-4" />
-          <span>Add Social Link</span>
+          <span>{t('addNewLink')}</span>
         </button>
       </div>
 
@@ -158,12 +160,12 @@ export default function AdminSocialPage() {
         {loading ? (
           <div className="col-span-full py-12 text-center text-gray-500">
             <div className="w-8 h-8 border-3 border-[#F5C400] border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-            Loading social links...
+            {t('loading')}
           </div>
         ) : links.length === 0 ? (
           <div className="col-span-full py-12 text-center text-gray-500 bg-[#151515] border border-[#262626] rounded-2xl p-8">
-            <Share2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            No social media accounts linked yet. Add one above.
+            <Share2 className="w-10 h-10 mx-auto mb-3 opacity-30 text-[#F5C400]" />
+            {t('noSocialFound')}
           </div>
         ) : (
           links.map((link) => (
@@ -185,7 +187,7 @@ export default function AdminSocialPage() {
                           : 'bg-gray-500/15 text-gray-400'
                       }`}
                     >
-                      {link.is_active ? 'Active' : 'Hidden'}
+                      {link.is_active ? t('active') : t('inactive')}
                     </span>
                   </div>
                   <a
@@ -193,6 +195,7 @@ export default function AdminSocialPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs text-gray-400 hover:text-[#F5C400] flex items-center gap-1 truncate mt-0.5"
+                    dir="ltr"
                   >
                     <span className="truncate">{link.url}</span>
                     <ExternalLink className="w-3 h-3 flex-shrink-0" />
@@ -200,18 +203,18 @@ export default function AdminSocialPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 <button
                   onClick={() => openEditModal(link)}
                   className="p-1.5 text-gray-400 hover:text-[#F5C400] hover:bg-[#222] rounded-lg transition-colors"
-                  title="Edit"
+                  title={t('edit')}
                 >
                   <Edit className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setDeleteId(link.id)}
                   className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                  title="Delete"
+                  title={t('delete')}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -227,7 +230,7 @@ export default function AdminSocialPage() {
           <div className="bg-[#151515] border border-[#2a2a2a] rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
             <div className="flex items-center justify-between pb-4 border-b border-[#222] mb-5">
               <h2 className="text-lg font-bold text-white">
-                {editingLink ? 'Edit Social Link' : 'Add Social Link'}
+                {editingLink ? t('editSocialTitle') : t('addNewLink')}
               </h2>
               <button
                 onClick={() => setModalOpen(false)}
@@ -240,7 +243,7 @@ export default function AdminSocialPage() {
             <form onSubmit={handleSave} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Platform Name
+                  {t('platformName')}
                 </label>
                 <input
                   type="text"
@@ -254,13 +257,14 @@ export default function AdminSocialPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Target URL *
+                  {t('targetUrl')}
                 </label>
                 <input
                   type="url"
                   value={formData.url}
                   onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                   placeholder="https://facebook.com/altayeb"
+                  dir="ltr"
                   required
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 />
@@ -268,7 +272,7 @@ export default function AdminSocialPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Display Order
+                  {t('sortOrder')}
                 </label>
                 <input
                   type="number"
@@ -285,7 +289,7 @@ export default function AdminSocialPage() {
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                   className="w-4 h-4 rounded text-[#F5C400] focus:ring-[#F5C400] bg-[#0D0D0D] border-gray-700"
                 />
-                <span className="text-sm text-gray-300">Active (Visible in header & footer)</span>
+                <span className="text-sm text-gray-300">{t('active')}</span>
               </label>
 
               <div className="flex items-center justify-end gap-3 pt-5 border-t border-[#222]">
@@ -294,13 +298,13 @@ export default function AdminSocialPage() {
                   onClick={() => setModalOpen(false)}
                   className="px-4 py-2 text-sm text-gray-400 hover:text-white"
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button
                   type="submit"
                   className="bg-[#F5C400] hover:bg-[#FFD429] text-black font-semibold text-sm px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-[#F5C400]/20"
                 >
-                  {editingLink ? 'Save Changes' : 'Add Link'}
+                  {editingLink ? t('saveChanges') : t('addNewLink')}
                 </button>
               </div>
             </form>
@@ -310,10 +314,10 @@ export default function AdminSocialPage() {
 
       <ConfirmDialog
         isOpen={deleteId !== null}
-        title="Delete Social Link"
-        message="Are you sure you want to remove this social media link?"
-        confirmLabel="Yes, Delete"
-        cancelLabel="Cancel"
+        title={t('deleteSocialTitle')}
+        message={t('deleteSocialMsg')}
+        confirmLabel={t('yesDelete')}
+        cancelLabel={t('cancel')}
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
       />

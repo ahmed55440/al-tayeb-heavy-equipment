@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, MapPin, ExternalLink, Phone, Save, X } from 'lucide-react';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import Toast from '@/components/admin/Toast';
+import { useAdminLocale } from '@/lib/admin-i18n';
 
 interface BranchItem {
   id: number;
@@ -18,6 +19,7 @@ interface BranchItem {
 }
 
 export default function AdminBranchesPage() {
+  const { t, isRtl } = useAdminLocale();
   const [branches, setBranches] = useState<BranchItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -45,7 +47,7 @@ export default function AdminBranchesPage() {
         setBranches(data.branches || []);
       }
     } catch {
-      setToast({ message: 'Failed to load branches', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -88,7 +90,7 @@ export default function AdminBranchesPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name_ar && !formData.name_en) {
-      setToast({ message: 'Branch name is required', type: 'error' });
+      setToast({ message: t('branchNameAr'), type: 'error' });
       return;
     }
 
@@ -105,16 +107,16 @@ export default function AdminBranchesPage() {
       const data = await res.json();
       if (data.success) {
         setToast({
-          message: editingBranch ? 'Branch updated successfully!' : 'Branch created successfully!',
+          message: editingBranch ? t('branchUpdatedSuccess') : t('branchCreatedSuccess'),
           type: 'success',
         });
         setModalOpen(false);
         fetchBranches();
       } else {
-        setToast({ message: data.error || 'Failed to save branch', type: 'error' });
+        setToast({ message: data.error || t('error'), type: 'error' });
       }
     } catch {
-      setToast({ message: 'Error saving branch', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     }
   };
 
@@ -124,13 +126,13 @@ export default function AdminBranchesPage() {
       const res = await fetch(`/api/branches/${deleteId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        setToast({ message: 'Branch deleted successfully', type: 'success' });
+        setToast({ message: t('branchDeletedSuccess'), type: 'success' });
         setBranches((prev) => prev.filter((b) => b.id !== deleteId));
       } else {
-        setToast({ message: data.error || 'Failed to delete branch', type: 'error' });
+        setToast({ message: data.error || t('error'), type: 'error' });
       }
     } catch {
-      setToast({ message: 'Error deleting branch', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setDeleteId(null);
     }
@@ -150,10 +152,10 @@ export default function AdminBranchesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-            Showroom Branches & Locations
+            {t('branchesTitle')}
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Manage your showroom branches, Google Maps directions, and phone numbers.
+            {t('branchesSubtitle')}
           </p>
         </div>
         <button
@@ -161,7 +163,7 @@ export default function AdminBranchesPage() {
           className="inline-flex items-center gap-2 bg-[#F5C400] hover:bg-[#FFD429] text-black font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors shadow-lg shadow-[#F5C400]/10 w-fit"
         >
           <Plus className="w-4 h-4" />
-          <span>Add Showroom Branch</span>
+          <span>{t('addNewBranch')}</span>
         </button>
       </div>
 
@@ -170,12 +172,12 @@ export default function AdminBranchesPage() {
         {loading ? (
           <div className="col-span-full py-12 text-center text-gray-500">
             <div className="w-8 h-8 border-3 border-[#F5C400] border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-            Loading branches...
+            {t('loading')}
           </div>
         ) : branches.length === 0 ? (
           <div className="col-span-full py-12 text-center text-gray-500 bg-[#151515] border border-[#262626] rounded-2xl p-8">
-            <MapPin className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            No branches configured. Add your first showroom location above.
+            <MapPin className="w-10 h-10 mx-auto mb-3 opacity-30 text-[#F5C400]" />
+            {t('noBranchesFound')}
           </div>
         ) : (
           branches.map((b) => (
@@ -203,25 +205,25 @@ export default function AdminBranchesPage() {
                         : 'bg-gray-500/15 text-gray-400 border border-gray-500/30'
                     }`}
                   >
-                    {b.is_active ? 'Active' : 'Inactive'}
+                    {b.is_active ? t('active') : t('inactive')}
                   </span>
                 </div>
 
                 <div className="mt-5 space-y-2 text-xs text-gray-400">
                   {b.address_ar && (
                     <p className="line-clamp-2">
-                      <strong className="text-gray-300">العنوان:</strong> {b.address_ar}
+                      <strong className="text-gray-300">{isRtl ? 'العنوان:' : 'Address (AR):'}</strong> {b.address_ar}
                     </p>
                   )}
                   {b.address_en && (
                     <p className="line-clamp-2">
-                      <strong className="text-gray-300">Address:</strong> {b.address_en}
+                      <strong className="text-gray-300">{isRtl ? 'العنوان بالإنجليزية:' : 'Address (EN):'}</strong> {b.address_en}
                     </p>
                   )}
                   {b.phone && (
                     <p className="flex items-center gap-2 text-gray-300">
                       <Phone className="w-3.5 h-3.5 text-[#F5C400]" />
-                      <span>{b.phone}</span>
+                      <span dir="ltr">{b.phone}</span>
                     </p>
                   )}
                 </div>
@@ -235,7 +237,7 @@ export default function AdminBranchesPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs text-[#F5C400] hover:underline"
                   >
-                    <span>View Map</span>
+                    <span>{t('viewOnGoogleMaps')}</span>
                     <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 ) : (
@@ -246,14 +248,14 @@ export default function AdminBranchesPage() {
                   <button
                     onClick={() => openEditModal(b)}
                     className="p-1.5 text-gray-400 hover:text-[#F5C400] hover:bg-[#222] rounded-lg transition-colors"
-                    title="Edit"
+                    title={t('edit')}
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setDeleteId(b.id)}
                     className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                    title="Delete"
+                    title={t('delete')}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -270,7 +272,7 @@ export default function AdminBranchesPage() {
           <div className="bg-[#151515] border border-[#2a2a2a] rounded-2xl w-full max-w-lg p-6 shadow-2xl relative">
             <div className="flex items-center justify-between pb-4 border-b border-[#222] mb-5">
               <h2 className="text-lg font-bold text-white">
-                {editingBranch ? 'Edit Branch Location' : 'Add New Branch'}
+                {editingBranch ? t('editBranchTitle') : t('addNewBranch')}
               </h2>
               <button
                 onClick={() => setModalOpen(false)}
@@ -283,7 +285,7 @@ export default function AdminBranchesPage() {
             <form onSubmit={handleSave} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Branch Name (Arabic) *
+                  {t('branchNameAr')}
                 </label>
                 <input
                   type="text"
@@ -298,12 +300,13 @@ export default function AdminBranchesPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Branch Name (English)
+                  {t('branchNameEn')}
                 </label>
                 <input
                   type="text"
                   value={formData.name_en}
                   onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
+                  dir="ltr"
                   placeholder="e.g. Main Showroom — Cairo-Suez Highway"
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 />
@@ -311,7 +314,7 @@ export default function AdminBranchesPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Address (Arabic)
+                  {t('addressAr')}
                 </label>
                 <textarea
                   rows={2}
@@ -325,12 +328,13 @@ export default function AdminBranchesPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Address (English)
+                  {t('addressEn')}
                 </label>
                 <textarea
                   rows={2}
                   value={formData.address_en}
                   onChange={(e) => setFormData({ ...formData, address_en: e.target.value })}
+                  dir="ltr"
                   placeholder="Detailed address in English..."
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 ></textarea>
@@ -339,12 +343,13 @@ export default function AdminBranchesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                    Phone Number
+                    {t('phoneNum')}
                   </label>
                   <input
                     type="text"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    dir="ltr"
                     placeholder="+20 100 000 0000"
                     className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                   />
@@ -352,7 +357,7 @@ export default function AdminBranchesPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                    Sort Order
+                    {t('sortOrder')}
                   </label>
                   <input
                     type="number"
@@ -365,12 +370,13 @@ export default function AdminBranchesPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Google Maps URL
+                  {t('mapsUrl')}
                 </label>
                 <input
                   type="url"
                   value={formData.maps_link}
                   onChange={(e) => setFormData({ ...formData, maps_link: e.target.value })}
+                  dir="ltr"
                   placeholder="https://maps.google.com/?q=..."
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 />
@@ -383,7 +389,7 @@ export default function AdminBranchesPage() {
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                   className="w-4 h-4 rounded text-[#F5C400] focus:ring-[#F5C400] bg-[#0D0D0D] border-gray-700"
                 />
-                <span className="text-sm text-gray-300">Active (Visible on website)</span>
+                <span className="text-sm text-gray-300">{t('active')}</span>
               </label>
 
               <div className="flex items-center justify-end gap-3 pt-5 border-t border-[#222]">
@@ -392,13 +398,13 @@ export default function AdminBranchesPage() {
                   onClick={() => setModalOpen(false)}
                   className="px-4 py-2 text-sm text-gray-400 hover:text-white"
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button
                   type="submit"
                   className="bg-[#F5C400] hover:bg-[#FFD429] text-black font-semibold text-sm px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-[#F5C400]/20"
                 >
-                  {editingBranch ? 'Save Changes' : 'Create Branch'}
+                  {editingBranch ? t('saveChanges') : t('addNewBranch')}
                 </button>
               </div>
             </form>
@@ -408,10 +414,10 @@ export default function AdminBranchesPage() {
 
       <ConfirmDialog
         isOpen={deleteId !== null}
-        title="Delete Branch"
-        message="Are you sure you want to remove this showroom branch?"
-        confirmLabel="Yes, Delete"
-        cancelLabel="Cancel"
+        title={t('deleteBranchTitle')}
+        message={t('deleteBranchMsg')}
+        confirmLabel={t('yesDelete')}
+        cancelLabel={t('cancel')}
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
       />

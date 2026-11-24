@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Plus, Edit, Trash2, FolderTree, ExternalLink } from 'lucide-react';
 import ConfirmDialog from '@/components/admin/ConfirmDialog';
 import Toast from '@/components/admin/Toast';
+import { useAdminLocale } from '@/lib/admin-i18n';
 
 interface CategoryItem {
   id: number;
@@ -19,6 +20,7 @@ interface CategoryItem {
 }
 
 export default function AdminCategoriesPage() {
+  const { t, isRtl } = useAdminLocale();
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -33,7 +35,7 @@ export default function AdminCategoriesPage() {
         setCategories(data.categories || []);
       }
     } catch {
-      setToast({ message: 'Failed to load categories', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -49,13 +51,13 @@ export default function AdminCategoriesPage() {
       const res = await fetch(`/api/categories/${deleteId}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
-        setToast({ message: 'Category deleted successfully', type: 'success' });
+        setToast({ message: t('categoryDeletedSuccess'), type: 'success' });
         setCategories((prev) => prev.filter((c) => c.id !== deleteId));
       } else {
-        setToast({ message: data.error || 'Failed to delete category', type: 'error' });
+        setToast({ message: data.error || t('error'), type: 'error' });
       }
     } catch {
-      setToast({ message: 'Error deleting category', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setDeleteId(null);
     }
@@ -75,10 +77,10 @@ export default function AdminCategoriesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-            Equipment Categories
+            {t('categoriesTitle')}
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Organize heavy equipment into dynamic categories with images and descriptions.
+            {t('categoriesSubtitle')}
           </p>
         </div>
         <Link
@@ -86,23 +88,23 @@ export default function AdminCategoriesPage() {
           className="inline-flex items-center gap-2 bg-[#F5C400] hover:bg-[#FFD429] text-black font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors shadow-lg shadow-[#F5C400]/10 w-fit"
         >
           <Plus className="w-4 h-4" />
-          <span>Add New Category</span>
+          <span>{t('addNewCategory')}</span>
         </Link>
       </div>
 
       {/* Categories Table */}
       <div className="bg-[#151515] border border-[#262626] rounded-2xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-300">
+          <table className={`w-full text-sm text-gray-300 ${isRtl ? 'text-right' : 'text-left'}`}>
             <thead className="bg-[#1A1A1A] text-xs uppercase tracking-wider text-gray-400 border-b border-[#262626]">
               <tr>
-                <th className="py-4 px-4 font-semibold">Image</th>
-                <th className="py-4 px-4 font-semibold">Name (Arabic)</th>
-                <th className="py-4 px-4 font-semibold">Name (English)</th>
-                <th className="py-4 px-4 font-semibold">Slug</th>
-                <th className="py-4 px-4 font-semibold text-center">Sort Order</th>
-                <th className="py-4 px-4 font-semibold">Status</th>
-                <th className="py-4 px-4 font-semibold text-right">Actions</th>
+                <th className="py-4 px-4 font-semibold">{t('tableImage')}</th>
+                <th className="py-4 px-4 font-semibold">{t('categoryNameAr')}</th>
+                <th className="py-4 px-4 font-semibold">{t('categoryNameEn')}</th>
+                <th className="py-4 px-4 font-semibold">{t('customSlug')}</th>
+                <th className="py-4 px-4 font-semibold text-center">{t('sortOrder')}</th>
+                <th className="py-4 px-4 font-semibold">{t('status')}</th>
+                <th className={`py-4 px-4 font-semibold ${isRtl ? 'text-left' : 'text-right'}`}>{t('actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#222]">
@@ -110,14 +112,14 @@ export default function AdminCategoriesPage() {
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-gray-500">
                     <div className="w-8 h-8 border-3 border-[#F5C400] border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                    Loading categories...
+                    {t('loading')}
                   </td>
                 </tr>
               ) : categories.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-gray-500">
                     <FolderTree className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    No categories found. Create your first category above.
+                    {t('noCategoriesFound')}
                   </td>
                 </tr>
               ) : (
@@ -159,30 +161,30 @@ export default function AdminCategoriesPage() {
                             : 'bg-gray-500/15 text-gray-400 border border-gray-500/30'
                         }`}
                       >
-                        {c.is_active ? 'Active' : 'Inactive'}
+                        {c.is_active ? t('active') : t('inactive')}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className={`py-3 px-4 ${isRtl ? 'text-left' : 'text-right'}`}>
+                      <div className={`flex items-center gap-2 ${isRtl ? 'justify-start' : 'justify-end'}`}>
                         <Link
                           href={`/category/${c.slug}`}
                           target="_blank"
                           className="p-1.5 text-gray-400 hover:text-white hover:bg-[#252525] rounded-lg transition-colors"
-                          title="View on site"
+                          title={t('viewOnSite')}
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Link>
                         <Link
                           href={`/admin/categories/${c.id}`}
                           className="p-1.5 text-gray-400 hover:text-[#F5C400] hover:bg-[#252525] rounded-lg transition-colors"
-                          title="Edit"
+                          title={t('edit')}
                         >
                           <Edit className="w-4 h-4" />
                         </Link>
                         <button
                           onClick={() => setDeleteId(c.id)}
                           className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                          title="Delete"
+                          title={t('delete')}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -198,10 +200,10 @@ export default function AdminCategoriesPage() {
 
       <ConfirmDialog
         isOpen={deleteId !== null}
-        title="Delete Category"
-        message="Are you sure you want to delete this category? Equipment in this category will become uncategorized."
-        confirmLabel="Yes, Delete"
-        cancelLabel="Cancel"
+        title={t('deleteCategoryTitle')}
+        message={t('deleteCategoryMsg')}
+        confirmLabel={t('yesDelete')}
+        cancelLabel={t('cancel')}
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
       />

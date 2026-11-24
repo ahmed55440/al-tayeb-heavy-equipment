@@ -8,12 +8,11 @@ import {
   Image as ImageIcon,
   MessageSquare,
   MapPin,
-  CheckCircle2,
-  Clock,
   ArrowUpRight,
   Plus,
 } from 'lucide-react';
 import StatsCard from '@/components/admin/StatsCard';
+import { useAdminLocale } from '@/lib/admin-i18n';
 
 interface DashboardStats {
   totalEquipment: number;
@@ -48,6 +47,7 @@ interface RecentEquipment {
   status: string;
   primary_image: string;
   category_name_ar: string;
+  category_name_en: string;
 }
 
 export default function AdminDashboardPage() {
@@ -55,6 +55,7 @@ export default function AdminDashboardPage() {
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
   const [recentEquipment, setRecentEquipment] = useState<RecentEquipment[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t, isRtl } = useAdminLocale();
 
   useEffect(() => {
     async function fetchStats() {
@@ -90,10 +91,10 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
-            Dashboard Overview
+            {t('overviewTitle')}
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Welcome to Al Tayeb Heavy Equipment management panel.
+            {t('welcomeAdmin')}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -102,14 +103,14 @@ export default function AdminDashboardPage() {
             className="inline-flex items-center gap-2 bg-[#F5C400] hover:bg-[#FFD429] text-black font-semibold text-sm px-4 py-2.5 rounded-xl transition-colors shadow-lg shadow-[#F5C400]/10"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Equipment</span>
+            <span>{t('addEquipmentBtn')}</span>
           </Link>
           <Link
             href="/"
             target="_blank"
             className="inline-flex items-center gap-2 bg-[#1A1A1A] hover:bg-[#252525] text-white border border-[#333] text-sm px-4 py-2.5 rounded-xl transition-colors"
           >
-            <span>View Website</span>
+            <span>{t('viewWebsite')}</span>
             <ArrowUpRight className="w-4 h-4 text-gray-400" />
           </Link>
         </div>
@@ -118,32 +119,32 @@ export default function AdminDashboardPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatsCard
-          title="Total Equipment"
+          title={t('totalEquipment')}
           value={stats?.totalEquipment || 0}
           icon={Truck}
           color="#F5C400"
-          subtitle={`${stats?.availableEquipment || 0} Available in stock`}
+          subtitle={`${stats?.availableEquipment || 0} ${t('availableInStock')}`}
         />
         <StatsCard
-          title="New Requests"
+          title={t('newRequests')}
           value={stats?.newRequests || 0}
           icon={MessageSquare}
           color="#38BDF8"
-          subtitle={`${stats?.totalRequests || 0} Total inquiries`}
+          subtitle={`${stats?.totalRequests || 0} ${t('totalInquiries')}`}
         />
         <StatsCard
-          title="Active Categories"
+          title={t('activeCategories')}
           value={stats?.totalCategories || 0}
           icon={FolderTree}
           color="#A855F7"
-          subtitle="Equipment classifications"
+          subtitle={t('machineryClasses')}
         />
         <StatsCard
-          title="Branches & Locations"
+          title={t('branchesCount')}
           value={stats?.totalBranches || 0}
           icon={MapPin}
           color="#22C55E"
-          subtitle={`${stats?.totalBanners || 0} Hero banners`}
+          subtitle={`${stats?.totalBanners || 0} ${t('heroBannersCount')}`}
         />
       </div>
 
@@ -154,20 +155,20 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <Truck className="w-5 h-5 text-[#F5C400]" />
-              <span>Latest Equipment Added</span>
+              <span>{t('latestEquipment')}</span>
             </h2>
             <Link
               href="/admin/equipment"
-              className="text-xs text-[#F5C400] hover:underline flex items-center gap-1"
+              className="text-xs text-[#F5C400] hover:underline flex items-center gap-1 font-bold"
             >
-              <span>View All</span>
+              <span>{t('viewAll')}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           <div className="space-y-3">
             {recentEquipment.length === 0 ? (
-              <p className="text-sm text-gray-500 py-4 text-center">No equipment added yet.</p>
+              <p className="text-sm text-gray-500 py-4 text-center">{t('noRecentEquipment')}</p>
             ) : (
               recentEquipment.map((eq) => (
                 <div
@@ -179,7 +180,7 @@ export default function AdminDashboardPage() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={eq.primary_image}
-                        alt={eq.name_en || eq.name_ar}
+                        alt={eq.name_ar || eq.name_en}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -190,10 +191,10 @@ export default function AdminDashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-white truncate">
-                      {eq.name_en || eq.name_ar}
+                      {isRtl ? eq.name_ar || eq.name_en : eq.name_en || eq.name_ar}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
-                      {eq.brand} {eq.model} • {eq.category_name_ar || 'General'}
+                      {eq.brand} {eq.model} • {isRtl ? eq.category_name_ar : eq.category_name_en || 'General'}
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
@@ -204,7 +205,7 @@ export default function AdminDashboardPage() {
                           : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
                       }`}
                     >
-                      {eq.status}
+                      {eq.status === 'available' ? t('available') : eq.status}
                     </span>
                   </div>
                 </div>
@@ -218,20 +219,20 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-[#38BDF8]" />
-              <span>Recent Customer Inquiries</span>
+              <span>{t('latestRequests')}</span>
             </h2>
             <Link
               href="/admin/requests"
-              className="text-xs text-[#38BDF8] hover:underline flex items-center gap-1"
+              className="text-xs text-[#38BDF8] hover:underline flex items-center gap-1 font-bold"
             >
-              <span>View All</span>
+              <span>{t('viewAll')}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           <div className="space-y-3">
             {recentRequests.length === 0 ? (
-              <p className="text-sm text-gray-500 py-4 text-center">No customer requests yet.</p>
+              <p className="text-sm text-gray-500 py-4 text-center">{t('noRecentRequests')}</p>
             ) : (
               recentRequests.map((req) => (
                 <div
@@ -258,8 +259,8 @@ export default function AdminDashboardPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between mt-2 text-xs text-gray-400">
-                    <span>Looking for: <strong className="text-gray-300">{req.equipment_name || 'General Equipment'}</strong></span>
-                    <span>{req.phone}</span>
+                    <span>{t('desiredEquipment')}: <strong className="text-gray-300">{req.equipment_name || 'عام'}</strong></span>
+                    <span className="font-mono">{req.phone}</span>
                   </div>
                 </div>
               ))

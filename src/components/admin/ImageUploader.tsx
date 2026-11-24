@@ -1,27 +1,52 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, X, Image as ImageIcon, Link as LinkIcon, Plus } from 'lucide-react';
+import { Upload, X, Link as LinkIcon } from 'lucide-react';
 
-interface ImageUploaderProps {
+interface MultiImageUploaderProps {
   images: string[];
+  value?: undefined;
   onChange: (images: string[]) => void;
   maxImages?: number;
   type?: string;
   single?: boolean;
+  label?: string;
 }
 
-export default function ImageUploader({
-  images = [],
-  onChange,
-  maxImages = 10,
-  type = 'equipment',
-  single = false,
-}: ImageUploaderProps) {
+interface SingleImageUploaderProps {
+  value?: string;
+  images?: undefined;
+  onChange: (image: string) => void;
+  maxImages?: number;
+  type?: string;
+  single?: boolean;
+  label?: string;
+}
+
+export type ImageUploaderProps = MultiImageUploaderProps | SingleImageUploaderProps;
+
+export default function ImageUploader(props: ImageUploaderProps) {
+  const { maxImages = 10, type = 'equipment', label } = props;
+  const isSingle = props.value !== undefined || props.single === true;
+
+  const currentImages: string[] = props.images !== undefined
+    ? props.images
+    : props.value
+    ? [props.value]
+    : [];
+
   const [uploading, setUploading] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [showUrlModal, setShowUrlModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const triggerChange = (newImages: string[]) => {
+    if (props.value !== undefined || props.single) {
+      (props.onChange as (url: string) => void)(newImages[0] || '');
+    } else {
+      (props.onChange as (urls: string[]) => void)(newImages);
+    }
+  };
 
   const handleUploadFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -52,10 +77,10 @@ export default function ImageUploader({
     }
 
     if (newUrls.length > 0) {
-      if (single) {
-        onChange([newUrls[0]]);
+      if (isSingle) {
+        triggerChange([newUrls[0]]);
       } else {
-        onChange([...images, ...newUrls].slice(0, maxImages));
+        triggerChange([...currentImages, ...newUrls].slice(0, maxImages));
       }
     }
 
@@ -69,47 +94,51 @@ export default function ImageUploader({
     e.preventDefault();
     if (!urlInput.trim()) return;
 
-    if (single) {
-      onChange([urlInput.trim()]);
+    if (isSingle) {
+      triggerChange([urlInput.trim()]);
     } else {
-      onChange([...images, urlInput.trim()].slice(0, maxImages));
+      triggerChange([...currentImages, urlInput.trim()].slice(0, maxImages));
     }
     setUrlInput('');
     setShowUrlModal(false);
   };
 
   const handleRemove = (index: number) => {
-    const updated = images.filter((_, i) => i !== index);
-    onChange(updated);
+    const updated = currentImages.filter((_, i) => i !== index);
+    triggerChange(updated);
   };
 
   const handleSetPrimary = (index: number) => {
     if (index === 0) return;
-    const selected = images[index];
-    const filtered = images.filter((_, i) => i !== index);
-    onChange([selected, ...filtered]);
+    const selected = currentImages[index];
+    const filtered = currentImages.filter((_, i) => i !== index);
+    triggerChange([selected, ...filtered]);
   };
+
+  const effectiveMax = isSingle ? 1 : maxImages;
 
   return (
     <div className="space-y-4">
+      {label && <p className="text-xs font-semibold text-gray-400 mb-1">{label}</p>}
+
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        multiple={!single}
+        multiple={!isSingle}
         onChange={(e) => handleUploadFiles(e.target.files)}
         className="hidden"
       />
 
       {/* Grid of current images */}
-      {images.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {images.map((url, index) => (
+      {currentImages.length > 0 && (
+        <div className={`grid gap-3 ${isSingle ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
+          {currentImages.map((url, index) => (
             <div
               key={index}
               className={`relative group rounded-xl overflow-hidden aspect-[4/3] bg-[#0D0D0D] border-2 transition-all ${
-                index === 0 ? 'border-[#F5C400]' : 'border-[#262626]'
+                index === 0 && !isSingle ? 'border-[#F5C400]' : 'border-[#262626]'
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -119,7 +148,7 @@ export default function ImageUploader({
                 className="w-full h-full object-cover"
               />
 
-              {index === 0 && (
+              {index === 0 && !isSingle && (
                 <span className="absolute top-1.5 left-1.5 bg-[#F5C400] text-black text-[10px] font-bold px-1.5 py-0.5 rounded shadow">
                   COVER
                 </span>
@@ -127,7 +156,7 @@ export default function ImageUploader({
 
               {/* Hover actions */}
               <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                {index !== 0 && (
+                {index !== 0 && !isSingle && (
                   <button
                     type="button"
                     onClick={() => handleSetPrimary(index)}
@@ -152,7 +181,7 @@ export default function ImageUploader({
       )}
 
       {/* Upload button area */}
-      {images.length < maxImages && (
+      {currentImages.length < effectiveMax && (
         <div className="flex gap-2">
           <button
             type="button"
@@ -166,7 +195,7 @@ export default function ImageUploader({
               <Upload className="w-5 h-5 text-[#F5C400]" />
             )}
             <span className="text-xs font-medium">
-              {uploading ? 'Uploading...' : 'Upload from device'}
+              {uploading ? 'جاري الرفع / Uploading...' : 'رفع من الجهاز / Upload'}
             </span>
           </button>
 
@@ -177,7 +206,7 @@ export default function ImageUploader({
             title="Paste Image URL"
           >
             <LinkIcon className="w-5 h-5 text-gray-400" />
-            <span className="text-xs font-medium">Add URL</span>
+            <span className="text-xs font-medium">رابط / URL</span>
           </button>
         </div>
       )}

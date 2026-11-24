@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 import ImageUploader from '@/components/admin/ImageUploader';
 import Toast from '@/components/admin/Toast';
+import { useAdminLocale } from '@/lib/admin-i18n';
 
 export default function AdminSettingsPage() {
+  const { t, isRtl } = useAdminLocale();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'brand' | 'contact' | 'content' | 'intro' | 'seo'>('brand');
@@ -31,7 +33,7 @@ export default function AdminSettingsPage() {
         setSettings(data.settings || {});
       }
     } catch {
-      setToast({ message: 'Failed to fetch settings', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -76,12 +78,12 @@ export default function AdminSettingsPage() {
 
       const data = await res.json();
       if (data.success) {
-        setToast({ message: 'All website settings saved successfully!', type: 'success' });
+        setToast({ message: t('settingsSavedSuccess'), type: 'success' });
       } else {
-        setToast({ message: data.error || 'Failed to save settings', type: 'error' });
+        setToast({ message: data.error || t('error'), type: 'error' });
       }
     } catch {
-      setToast({ message: 'Error saving settings', type: 'error' });
+      setToast({ message: t('error'), type: 'error' });
     } finally {
       setSaving(false);
     }
@@ -94,6 +96,14 @@ export default function AdminSettingsPage() {
       </div>
     );
   }
+
+  const tabs = [
+    { id: 'brand', label: t('brandTab'), icon: Globe },
+    { id: 'contact', label: t('contactTab'), icon: Phone },
+    { id: 'content', label: t('contentTab'), icon: Layout },
+    { id: 'intro', label: t('introTab'), icon: Sparkles },
+    { id: 'seo', label: t('seoTab'), icon: Search },
+  ];
 
   return (
     <form onSubmit={handleSaveAll} className="space-y-8 max-w-5xl">
@@ -109,10 +119,10 @@ export default function AdminSettingsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#222] pb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">
-            Dynamic Website Settings
+            {t('settingsTitle')}
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Manage showroom identity, contact numbers, text headlines, intro animation, and SEO.
+            {t('settingsSubtitle')}
           </p>
         </div>
 
@@ -126,19 +136,13 @@ export default function AdminSettingsPage() {
           ) : (
             <Save className="w-4 h-4" />
           )}
-          <span>Save All Settings</span>
+          <span>{saving ? t('saving') : t('saveAllSettings')}</span>
         </button>
       </div>
 
       {/* Settings Navigation Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#222]">
-        {[
-          { id: 'brand', label: 'Brand Identity & Logos', icon: Globe },
-          { id: 'contact', label: 'Contact & WhatsApp', icon: Phone },
-          { id: 'content', label: 'Homepage Content', icon: Layout },
-          { id: 'intro', label: 'Cinematic Intro', icon: Sparkles },
-          { id: 'seo', label: 'SEO & Metadata', icon: Search },
-        ].map((tab) => {
+        {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
@@ -163,11 +167,11 @@ export default function AdminSettingsPage() {
       {activeTab === 'brand' && (
         <div className="space-y-6">
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Showroom Name</h2>
+            <h2 className="text-base font-bold text-white mb-2">{t('siteNameAr')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Showroom Name (Arabic) *
+                  {t('siteNameAr')} *
                 </label>
                 <input
                   type="text"
@@ -180,12 +184,13 @@ export default function AdminSettingsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Showroom Name (English) *
+                  {t('siteNameEn')} *
                 </label>
                 <input
                   type="text"
                   value={getVal('site_name_en', 'en')}
                   onChange={(e) => updateVal('site_name_en', e.target.value, 'en')}
+                  dir="ltr"
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 />
               </div>
@@ -194,7 +199,7 @@ export default function AdminSettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Tagline / Brief Description (Arabic)
+                  {t('siteTaglineAr')}
                 </label>
                 <input
                   type="text"
@@ -207,12 +212,13 @@ export default function AdminSettingsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Tagline / Brief Description (English)
+                  {t('siteTaglineEn')}
                 </label>
                 <input
                   type="text"
                   value={getVal('site_description_en', 'en')}
                   onChange={(e) => updateVal('site_description_en', e.target.value, 'en')}
+                  dir="ltr"
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 />
               </div>
@@ -221,38 +227,32 @@ export default function AdminSettingsPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-              <h2 className="text-base font-bold text-white mb-1">Main Logo</h2>
-              <p className="text-xs text-gray-400">Used in header, footer, and intro.</p>
+              <h2 className="text-base font-bold text-white mb-1">{t('lightLogo')}</h2>
+              <p className="text-xs text-gray-400">{isRtl ? 'يستخدم في الهيدر والفوتر وشاشات الموقع.' : 'Used in header, footer, and intro.'}</p>
               <ImageUploader
-                images={getVal('logo', 'ar') ? [getVal('logo', 'ar')] : []}
-                onChange={(urls) => updateVal('logo', urls[0] || '', 'ar', 'image')}
-                type="logos"
-                single={true}
-                maxImages={1}
+                value={getVal('logo', 'ar')}
+                onChange={(url) => updateVal('logo', url, 'ar', 'image')}
+                label={t('lightLogo')}
               />
             </div>
 
             <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-              <h2 className="text-base font-bold text-white mb-1">Alternative Logo</h2>
-              <p className="text-xs text-gray-400">Optional white or monochrome variant.</p>
+              <h2 className="text-base font-bold text-white mb-1">{t('darkLogo')}</h2>
+              <p className="text-xs text-gray-400">{isRtl ? 'شعار إضافي مخصص للوضع الداكن أو الفاتح.' : 'Alternative dark or monochrome logo.'}</p>
               <ImageUploader
-                images={getVal('logo_alt', 'ar') ? [getVal('logo_alt', 'ar')] : []}
-                onChange={(urls) => updateVal('logo_alt', urls[0] || '', 'ar', 'image')}
-                type="logos"
-                single={true}
-                maxImages={1}
+                value={getVal('logo_alt', 'ar')}
+                onChange={(url) => updateVal('logo_alt', url, 'ar', 'image')}
+                label={t('darkLogo')}
               />
             </div>
 
             <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-              <h2 className="text-base font-bold text-white mb-1">Favicon</h2>
-              <p className="text-xs text-gray-400">Browser tab icon (32x32 or 64x64).</p>
+              <h2 className="text-base font-bold text-white mb-1">{t('faviconImage')}</h2>
+              <p className="text-xs text-gray-400">{isRtl ? 'أيقونة تبويب المتصفح (32x32 أو 64x64).' : 'Browser tab icon (32x32 or 64x64).'}</p>
               <ImageUploader
-                images={getVal('favicon', 'ar') ? [getVal('favicon', 'ar')] : []}
-                onChange={(urls) => updateVal('favicon', urls[0] || '', 'ar', 'image')}
-                type="logos"
-                single={true}
-                maxImages={1}
+                value={getVal('favicon', 'ar')}
+                onChange={(url) => updateVal('favicon', url, 'ar', 'image')}
+                label={t('faviconImage')}
               />
             </div>
           </div>
@@ -263,16 +263,17 @@ export default function AdminSettingsPage() {
       {activeTab === 'contact' && (
         <div className="space-y-6">
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Primary Phone & WhatsApp</h2>
+            <h2 className="text-base font-bold text-white mb-2">{t('contactTab')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Direct Call Phone Number
+                  {t('mainPhone')}
                 </label>
                 <input
                   type="text"
                   value={getVal('phone_number', 'ar')}
                   onChange={(e) => updateVal('phone_number', e.target.value, 'ar')}
+                  dir="ltr"
                   placeholder="+20 100 000 0000"
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 />
@@ -280,12 +281,13 @@ export default function AdminSettingsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  WhatsApp Number (with country code e.g. +20...)
+                  {t('mainWhatsapp')}
                 </label>
                 <input
                   type="text"
                   value={getVal('whatsapp_number', 'ar')}
                   onChange={(e) => updateVal('whatsapp_number', e.target.value, 'ar')}
+                  dir="ltr"
                   placeholder="+201000000000"
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 />
@@ -294,14 +296,14 @@ export default function AdminSettingsPage() {
           </div>
 
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">WhatsApp Prefilled Messages</h2>
+            <h2 className="text-base font-bold text-white mb-2">{isRtl ? 'رسائل الواتساب الجاهزة عند الطلب' : 'WhatsApp Prefilled Messages'}</h2>
             <p className="text-xs text-gray-500">
-              Variables supported: <code className="text-[#F5C400] font-mono">{'{equipment}'}</code> and <code className="text-[#F5C400] font-mono">{'{model}'}</code>
+              {isRtl ? 'المتغيرات المدعومة:' : 'Supported variables:'} <code className="text-[#F5C400] font-mono">{'{equipment}'}</code> {isRtl ? 'و' : 'and'} <code className="text-[#F5C400] font-mono">{'{model}'}</code>
             </p>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Message Template (Arabic)
+                {isRtl ? 'قالب الرسالة التلقائية (بالعربية)' : 'Message Template (Arabic)'}
               </label>
               <textarea
                 rows={3}
@@ -314,12 +316,13 @@ export default function AdminSettingsPage() {
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Message Template (English)
+                {isRtl ? 'قالب الرسالة التلقائية (بالإنجليزية)' : 'Message Template (English)'}
               </label>
               <textarea
                 rows={3}
                 value={getVal('whatsapp_message_en', 'en')}
                 onChange={(e) => updateVal('whatsapp_message_en', e.target.value, 'en')}
+                dir="ltr"
                 className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
               ></textarea>
             </div>
@@ -331,11 +334,11 @@ export default function AdminSettingsPage() {
       {activeTab === 'content' && (
         <div className="space-y-6">
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Equipment Request Section</h2>
+            <h2 className="text-base font-bold text-white mb-2">{isRtl ? 'قسم طلب معدة غير موجودة' : 'Equipment Request Section'}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Section Title (Arabic)
+                  {isRtl ? 'عنوان القسم (بالعربية)' : 'Section Title (Arabic)'}
                 </label>
                 <input
                   type="text"
@@ -348,12 +351,13 @@ export default function AdminSettingsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Section Title (English)
+                  {isRtl ? 'عنوان القسم (بالإنجليزية)' : 'Section Title (English)'}
                 </label>
                 <input
                   type="text"
                   value={getVal('request_title_en', 'en')}
                   onChange={(e) => updateVal('request_title_en', e.target.value, 'en')}
+                  dir="ltr"
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 />
               </div>
@@ -362,7 +366,7 @@ export default function AdminSettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Section Subtitle (Arabic)
+                  {isRtl ? 'العنوان الفرعي للقسم (بالعربية)' : 'Section Subtitle (Arabic)'}
                 </label>
                 <input
                   type="text"
@@ -375,12 +379,13 @@ export default function AdminSettingsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Section Subtitle (English)
+                  {isRtl ? 'العنوان الفرعي للقسم (بالإنجليزية)' : 'Section Subtitle (English)'}
                 </label>
                 <input
                   type="text"
                   value={getVal('request_subtitle_en', 'en')}
                   onChange={(e) => updateVal('request_subtitle_en', e.target.value, 'en')}
+                  dir="ltr"
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 />
               </div>
@@ -388,11 +393,11 @@ export default function AdminSettingsPage() {
           </div>
 
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Section Titles (Categories & Featured)</h2>
+            <h2 className="text-base font-bold text-white mb-2">{isRtl ? 'عناوين أقسام الرئيسية (الفئات والمعدات المميزة)' : 'Section Titles (Categories & Featured)'}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Categories Heading (Arabic)
+                  {isRtl ? 'عنوان قسم الفئات (بالعربية)' : 'Categories Heading (Arabic)'}
                 </label>
                 <input
                   type="text"
@@ -405,12 +410,13 @@ export default function AdminSettingsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Categories Heading (English)
+                  {isRtl ? 'عنوان قسم الفئات (بالإنجليزية)' : 'Categories Heading (English)'}
                 </label>
                 <input
                   type="text"
                   value={getVal('categories_title_en', 'en')}
                   onChange={(e) => updateVal('categories_title_en', e.target.value, 'en')}
+                  dir="ltr"
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 />
               </div>
@@ -419,7 +425,7 @@ export default function AdminSettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Featured Equipment Heading (Arabic)
+                  {isRtl ? 'عنوان المعدات المميزة (بالعربية)' : 'Featured Equipment Heading (Arabic)'}
                 </label>
                 <input
                   type="text"
@@ -432,12 +438,13 @@ export default function AdminSettingsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Featured Equipment Heading (English)
+                  {isRtl ? 'عنوان المعدات المميزة (بالإنجليزية)' : 'Featured Equipment Heading (English)'}
                 </label>
                 <input
                   type="text"
                   value={getVal('featured_title_en', 'en')}
                   onChange={(e) => updateVal('featured_title_en', e.target.value, 'en')}
+                  dir="ltr"
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 />
               </div>
@@ -445,11 +452,11 @@ export default function AdminSettingsPage() {
           </div>
 
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Footer Rights & Text</h2>
+            <h2 className="text-base font-bold text-white mb-2">{isRtl ? 'حقوق الفوتر والنصوص' : 'Footer Rights & Text'}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Footer Copyright (Arabic)
+                  {isRtl ? 'حقوق الحفظ في الفوتر (بالعربية)' : 'Footer Copyright (Arabic)'}
                 </label>
                 <input
                   type="text"
@@ -462,12 +469,13 @@ export default function AdminSettingsPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Footer Copyright (English)
+                  {isRtl ? 'حقوق الحفظ في الفوتر (بالإنجليزية)' : 'Footer Copyright (English)'}
                 </label>
                 <input
                   type="text"
                   value={getVal('footer_text_en', 'en')}
                   onChange={(e) => updateVal('footer_text_en', e.target.value, 'en')}
+                  dir="ltr"
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 />
               </div>
@@ -480,9 +488,11 @@ export default function AdminSettingsPage() {
       {activeTab === 'intro' && (
         <div className="space-y-6">
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Cinematic Wheel Loader Intro</h2>
+            <h2 className="text-base font-bold text-white mb-2">{t('introTab')}</h2>
             <p className="text-xs text-gray-400">
-              When enabled, visitors entering for the first time will experience the full-screen cinematic wheel loader animation pushing sand and revealing the showroom name and logo.
+              {isRtl
+                ? 'عند التفعيل، سيرى الزائر لأول مرة أنيميشن سينمائي عالي الجودة للودر أصفر يقوم بكنس الرمل وإظهار اسم المعرض والشعار.'
+                : 'When enabled, visitors entering for the first time will experience the full-screen cinematic wheel loader animation pushing sand and revealing the showroom name and logo.'}
             </p>
 
             <label className="flex items-center gap-3 cursor-pointer pt-3">
@@ -493,22 +503,20 @@ export default function AdminSettingsPage() {
                 className="w-5 h-5 rounded text-[#F5C400] focus:ring-[#F5C400] bg-[#0D0D0D] border-gray-700"
               />
               <span className="text-sm font-semibold text-white">
-                Enable Cinematic Intro on first visit
+                {t('cinematicIntroEnabled')}
               </span>
             </label>
           </div>
 
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-1">Intro Animation Logo (Optional)</h2>
+            <h2 className="text-base font-bold text-white mb-1">{isRtl ? 'شعار شاشة المقدمة السينمائية (اختياري)' : 'Intro Animation Logo (Optional)'}</h2>
             <p className="text-xs text-gray-400">
-              Specific logo revealed under the showroom name during the cinematic animation.
+              {isRtl ? 'شعار مخصص يظهر أسفل اسم المعرض بعد انقشاع الرمل والدخان.' : 'Specific logo revealed under the showroom name during the cinematic animation.'}
             </p>
             <ImageUploader
-              images={getVal('intro_logo', 'ar') ? [getVal('intro_logo', 'ar')] : []}
-              onChange={(urls) => updateVal('intro_logo', urls[0] || '', 'ar', 'image')}
-              type="logos"
-              single={true}
-              maxImages={1}
+              value={getVal('intro_logo', 'ar')}
+              onChange={(url) => updateVal('intro_logo', url, 'ar', 'image')}
+              label={isRtl ? 'شعار شاشة المقدمة' : 'Intro Logo'}
             />
           </div>
         </div>
@@ -518,11 +526,11 @@ export default function AdminSettingsPage() {
       {activeTab === 'seo' && (
         <div className="space-y-6">
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Search Engine Optimization (SEO)</h2>
+            <h2 className="text-base font-bold text-white mb-2">{t('seoTab')}</h2>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Meta Title (Arabic)
+                {t('metaTitleAr')}
               </label>
               <input
                 type="text"
@@ -535,19 +543,20 @@ export default function AdminSettingsPage() {
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Meta Title (English)
+                {t('metaTitleEn')}
               </label>
               <input
                 type="text"
                 value={getVal('meta_title_en', 'en')}
                 onChange={(e) => updateVal('meta_title_en', e.target.value, 'en')}
+                dir="ltr"
                 className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
               />
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Meta Description (Arabic)
+                {t('metaDescAr')}
               </label>
               <textarea
                 rows={3}
@@ -560,12 +569,13 @@ export default function AdminSettingsPage() {
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Meta Description (English)
+                {t('metaDescEn')}
               </label>
               <textarea
                 rows={3}
                 value={getVal('meta_description_en', 'en')}
                 onChange={(e) => updateVal('meta_description_en', e.target.value, 'en')}
+                dir="ltr"
                 className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
               ></textarea>
             </div>

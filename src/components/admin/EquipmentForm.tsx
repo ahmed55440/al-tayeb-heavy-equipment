@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, ArrowLeft, Plus, Trash2, Star, Check } from 'lucide-react';
+import { Save, ArrowLeft, ArrowRight } from 'lucide-react';
 import ImageUploader from '@/components/admin/ImageUploader';
 import Toast from '@/components/admin/Toast';
+import { useAdminLocale } from '@/lib/admin-i18n';
 
 interface CategoryOption {
   id: number;
@@ -43,6 +44,7 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const { t, isRtl } = useAdminLocale();
 
   const [formData, setFormData] = useState<EquipmentData>({
     category_id: initialData?.category_id || null,
@@ -94,7 +96,10 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name_ar && !formData.name_en) {
-      setToast({ message: 'Equipment name in Arabic or English is required', type: 'error' });
+      setToast({
+        message: isRtl ? 'يرجى إدخال اسم المعدة بالعربية أو الإنجليزية' : 'Equipment name is required',
+        type: 'error',
+      });
       return;
     }
 
@@ -113,17 +118,19 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
 
       if (data.success) {
         setToast({
-          message: isEdit ? 'Equipment updated successfully!' : 'Equipment created successfully!',
+          message: isEdit
+            ? isRtl ? 'تم تحديث بيانات المعدة بنجاح!' : 'Equipment updated successfully!'
+            : isRtl ? 'تمت إضافة المعدة بنجاح إلى المعرض!' : 'Equipment created successfully!',
           type: 'success',
         });
         setTimeout(() => {
           router.push('/admin/equipment');
         }, 1000);
       } else {
-        setToast({ message: data.error || 'Failed to save', type: 'error' });
+        setToast({ message: data.error || (isRtl ? 'فشل حفظ المعدة' : 'Failed to save'), type: 'error' });
       }
     } catch {
-      setToast({ message: 'Error submitting form', type: 'error' });
+      setToast({ message: isRtl ? 'حدث خطأ أثناء الاتصال' : 'Error submitting form', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -146,8 +153,8 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
           onClick={() => router.back()}
           className="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to List</span>
+          {isRtl ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+          <span>{t('back')}</span>
         </button>
 
         <button
@@ -160,7 +167,7 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
           ) : (
             <Save className="w-4 h-4" />
           )}
-          <span>{isEdit ? 'Save Changes' : 'Publish Equipment'}</span>
+          <span>{isEdit ? t('saveChanges') : t('publishEquipment')}</span>
         </button>
       </div>
 
@@ -170,12 +177,12 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
         <div className="lg:col-span-2 space-y-6">
           {/* Card: Basic Info */}
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Basic Information</h2>
+            <h2 className="text-base font-bold text-white mb-2">{t('basicInfo')}</h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Name (Arabic) *
+                  {t('nameAr')}
                 </label>
                 <input
                   type="text"
@@ -183,7 +190,7 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
                   value={formData.name_ar}
                   onChange={handleChange}
                   dir="rtl"
-                  placeholder="مثال: لودر كاتر بيلر 966H"
+                  placeholder="مثال: لودر كاتر بيلر CAT 966H"
                   required
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 />
@@ -191,7 +198,7 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Name (English)
+                  {t('nameEn')}
                 </label>
                 <input
                   type="text"
@@ -207,7 +214,7 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Brand / Manufacturer
+                  {t('brand')}
                 </label>
                 <input
                   type="text"
@@ -221,7 +228,7 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Model
+                  {t('model')}
                 </label>
                 <input
                   type="text"
@@ -235,7 +242,7 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Manufacturing Year
+                  {t('year')}
                 </label>
                 <input
                   type="text"
@@ -251,12 +258,12 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
 
           {/* Card: Pricing & Category */}
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Pricing & Category</h2>
+            <h2 className="text-base font-bold text-white mb-2">{t('pricingCategory')}</h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Price Option
+                  {t('priceOption')}
                 </label>
                 <select
                   name="price_type"
@@ -264,14 +271,14 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
                   onChange={handleChange}
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 >
-                  <option value="fixed">Fixed Price</option>
-                  <option value="contact">Contact for Price (اتصل للسعر)</option>
+                  <option value="fixed">{t('fixedPrice')}</option>
+                  <option value="contact">{t('contactForPriceOption')}</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Price (EGP / Currency)
+                  {t('priceEgp')}
                 </label>
                 <input
                   type="text"
@@ -286,7 +293,7 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                  Category
+                  {t('category')}
                 </label>
                 <select
                   name="category_id"
@@ -299,10 +306,10 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
                   }
                   className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
                 >
-                  <option value="">Select Category</option>
+                  <option value="">{t('selectCategory')}</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name_ar} ({c.name_en})
+                      {isRtl ? c.name_ar : c.name_en || c.name_ar}
                     </option>
                   ))}
                 </select>
@@ -312,11 +319,11 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
 
           {/* Card: Descriptions */}
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Descriptions & Overview</h2>
+            <h2 className="text-base font-bold text-white mb-2">{t('descriptions')}</h2>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Full Description (Arabic)
+                {t('descriptionAr')}
               </label>
               <textarea
                 name="description_ar"
@@ -331,7 +338,7 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Full Description (English)
+                {t('descriptionEn')}
               </label>
               <textarea
                 name="description_en"
@@ -346,14 +353,12 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
 
           {/* Card: Technical Specifications */}
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Technical Specifications</h2>
-            <p className="text-xs text-gray-500">
-              Tip: Separate spec items using pipe ( | ) e.g. قوة المحرك: 260 حصان | الوزن: 30 طن
-            </p>
+            <h2 className="text-base font-bold text-white mb-2">{t('techSpecs')}</h2>
+            <p className="text-xs text-gray-500">{t('specsTip')}</p>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Specifications (Arabic)
+                {t('specsAr')}
               </label>
               <textarea
                 name="specs_ar"
@@ -368,7 +373,7 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Specifications (English)
+                {t('specsEn')}
               </label>
               <textarea
                 name="specs_en"
@@ -386,11 +391,11 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
         <div className="space-y-6">
           {/* Status & Options */}
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Status & Visibility</h2>
+            <h2 className="text-base font-bold text-white mb-2">{t('statusVisibility')}</h2>
 
             <div>
               <label className="block text-xs font-semibold text-gray-400 mb-1.5">
-                Availability Status
+                {t('availabilityStatus')}
               </label>
               <select
                 name="status"
@@ -398,10 +403,10 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
                 onChange={handleChange}
                 className="w-full bg-[#0D0D0D] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#F5C400]"
               >
-                <option value="available">Available (متوفر)</option>
-                <option value="reserved">Reserved (محجوز)</option>
-                <option value="sold">Sold (مباع)</option>
-                <option value="maintenance">Maintenance (تحت الصيانة)</option>
+                <option value="available">{t('available')}</option>
+                <option value="reserved">{t('reserved')}</option>
+                <option value="sold">{t('sold')}</option>
+                <option value="maintenance">{t('maintenance')}</option>
               </select>
             </div>
 
@@ -414,7 +419,7 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
                   onChange={handleChange}
                   className="w-4 h-4 rounded text-[#F5C400] focus:ring-[#F5C400] bg-[#0D0D0D] border-gray-700"
                 />
-                <span className="text-sm text-gray-300">Feature on Homepage (مميز)</span>
+                <span className="text-sm text-gray-300">{t('featureOnHome')}</span>
               </label>
 
               <label className="flex items-center gap-3 cursor-pointer">
@@ -425,20 +430,18 @@ export default function EquipmentForm({ initialData, isEdit }: EquipmentFormProp
                   onChange={handleChange}
                   className="w-4 h-4 rounded text-[#F5C400] focus:ring-[#F5C400] bg-[#0D0D0D] border-gray-700"
                 />
-                <span className="text-sm text-gray-300">Published (Visible to visitors)</span>
+                <span className="text-sm text-gray-300">{t('published')}</span>
               </label>
             </div>
           </div>
 
           {/* Image Uploader */}
           <div className="bg-[#151515] border border-[#262626] rounded-2xl p-6 space-y-4">
-            <h2 className="text-base font-bold text-white mb-2">Equipment Photos</h2>
-            <p className="text-xs text-gray-400">
-              Upload multiple photos. The first image will be the primary cover image.
-            </p>
+            <h2 className="text-base font-bold text-white mb-2">{t('photosTitle')}</h2>
+            <p className="text-xs text-gray-400">{t('photosTip')}</p>
             <ImageUploader
               images={formData.images || []}
-              onChange={(urls) => setFormData((prev) => ({ ...prev, images: urls }))}
+              onChange={(urls: string[]) => setFormData((prev) => ({ ...prev, images: urls }))}
               type="equipment"
             />
           </div>
