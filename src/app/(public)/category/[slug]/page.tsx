@@ -1,4 +1,4 @@
-import getDb from '@/lib/db';
+import { query, queryOne } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { FolderTree, ArrowLeft, ArrowRight, Truck } from 'lucide-react';
@@ -12,31 +12,29 @@ interface PageProps {
 }
 
 async function getCategoryData(slug: string) {
-  const db = getDb();
-
-  const category = db
-    .prepare('SELECT * FROM categories WHERE slug = ? OR id = ?')
-    .get(slug, isNaN(Number(slug)) ? -1 : Number(slug)) as any;
+  const category = await queryOne(
+    'SELECT * FROM categories WHERE slug = ? OR id = ?',
+    [slug, isNaN(Number(slug)) ? -1 : Number(slug)]
+  ) as any;
 
   if (!category) return null;
 
-  const equipment = db
-    .prepare(`
-      SELECT e.*, 
-        c.name_ar as category_name_ar, 
-        c.name_en as category_name_en,
-        (SELECT image_path FROM equipment_images WHERE equipment_id = e.id AND is_primary = 1 LIMIT 1) as primary_image
-      FROM equipment e
-      LEFT JOIN categories c ON e.category_id = c.id
-      WHERE e.category_id = ? AND e.is_published = 1
-      ORDER BY e.sort_order ASC, e.id DESC
-    `)
-    .all(category.id) as any[];
+  const equipment = await query(`
+    SELECT e.*, 
+      c.name_ar as category_name_ar, 
+      c.name_en as category_name_en,
+      (SELECT image_path FROM equipment_images WHERE equipment_id = e.id AND is_primary = 1 LIMIT 1) as primary_image
+    FROM equipment e
+    LEFT JOIN categories c ON e.category_id = c.id
+    WHERE e.category_id = ? AND e.is_published = 1
+    ORDER BY e.sort_order ASC, e.id DESC
+  `, [category.id]);
 
   for (const eq of equipment) {
-    const imgs = db
-      .prepare('SELECT image_path FROM equipment_images WHERE equipment_id = ? ORDER BY is_primary DESC, sort_order ASC')
-      .all(eq.id) as Array<{ image_path: string }>;
+    const imgs = await query<{ image_path: string }>(
+      'SELECT image_path FROM equipment_images WHERE equipment_id = ? ORDER BY is_primary DESC, sort_order ASC',
+      [eq.id]
+    );
     eq.images = imgs.map((i) => i.image_path);
   }
 

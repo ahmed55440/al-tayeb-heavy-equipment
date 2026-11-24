@@ -1,5 +1,5 @@
 import RequestForm from '@/components/contact/RequestForm';
-import getDb from '@/lib/db';
+import { query } from '@/lib/db';
 import type { Metadata } from 'next';
 
 export const revalidate = 0;
@@ -9,13 +9,12 @@ export const metadata: Metadata = {
   description: 'أخبرنا بالمعدة الثقيلة التي تبحث عنها وسنتواصل معك فور توفرها أو نقوم باستيرادها خصيصاً لمشروعك.',
 };
 
-export default function RequestPage() {
-  const db = getDb();
-  const settingsRows = db.prepare('SELECT * FROM settings WHERE key LIKE "request_%"').all() as Array<{
+export default async function RequestPage() {
+  const settingsRows = await query<{
     key: string;
     value_ar: string;
     value_en: string;
-  }>;
+  }>('SELECT * FROM settings WHERE key LIKE "request_%"');
 
   const settings: Record<string, string> = {};
   for (const s of settingsRows) {

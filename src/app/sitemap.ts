@@ -1,17 +1,16 @@
 import { MetadataRoute } from 'next';
-import getDb from '@/lib/db';
+import { query } from '@/lib/db';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://altayeb-heavyequipment.com';
-  const db = getDb();
 
-  const equipment = db
-    .prepare('SELECT slug, updated_at FROM equipment WHERE is_published = 1')
-    .all() as Array<{ slug: string; updated_at: string }>;
+  const equipment = await query<{ slug: string; updated_at: string }>(
+    'SELECT slug, updated_at FROM equipment WHERE is_published = 1'
+  );
 
-  const categories = db
-    .prepare('SELECT slug FROM categories WHERE is_active = 1')
-    .all() as Array<{ slug: string }>;
+  const categories = await query<{ slug: string }>(
+    'SELECT slug FROM categories WHERE is_active = 1'
+  );
 
   const equipmentUrls = equipment.map((item) => ({
     url: `${baseUrl}/equipment/${item.slug}`,

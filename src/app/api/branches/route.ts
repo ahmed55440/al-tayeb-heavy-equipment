@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const db = getDb();
     const { searchParams } = new URL(request.url);
     const all = searchParams.get('all') === 'true';
 
-    let query = 'SELECT * FROM branches';
+    let sql = 'SELECT * FROM branches';
     if (!all) {
-      query += ' WHERE is_active = 1';
+      sql += ' WHERE is_active = 1';
     }
-    query += ' ORDER BY sort_order ASC, id ASC';
+    sql += ' ORDER BY sort_order ASC, id ASC';
 
-    const branches = db.prepare(query).all();
-    return NextResponse.json({ success: true, branches });
+    const branches = await query(sql);
+    return NextResponse.json({ success: true, branches, data: branches });
   } catch (error) {
     console.error('Fetch branches error:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch branches' }, { status: 500 });
@@ -36,11 +35,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Branch name is required' }, { status: 400 });
     }
 
-    const db = getDb();
-    const result = db.prepare(`
+    const result = await execute(`
       INSERT INTO branches (name_ar, name_en, address_ar, address_en, maps_link, phone, sort_order, is_active)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `, [
       name_ar || '',
       name_en || '',
       address_ar || '',
@@ -49,10 +47,10 @@ export async function POST(request: NextRequest) {
       phone || '',
       sort_order ?? 0,
       is_active !== undefined ? (is_active ? 1 : 0) : 1
-    );
+    ]);
 
-    const newBranch = db.prepare('SELECT * FROM branches WHERE id = ?').get(result.lastInsertRowid);
-    return NextResponse.json({ success: true, branch: newBranch }, { status: 201 });
+    const newBranch = await queryOne('SELECT * FROM branches WHERE id = ?', [result.lastInsertRowid]);
+    return NextResponse.json({ success: true, branch: newBranch, data: newBranch }, { status: 201 });
   } catch (error) {
     console.error('Create branch error:', error);
     return NextResponse.json({ success: false, error: 'Failed to create branch' }, { status: 500 });

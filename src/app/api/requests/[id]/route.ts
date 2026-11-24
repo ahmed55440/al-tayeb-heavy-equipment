@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import { queryOne, execute } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
 export async function GET(
@@ -13,8 +13,7 @@ export async function GET(
     }
 
     const { id } = await params;
-    const db = getDb();
-    const reqItem = db.prepare('SELECT * FROM equipment_requests WHERE id = ?').get(id);
+    const reqItem = await queryOne('SELECT * FROM equipment_requests WHERE id = ?', [id]);
 
     if (!reqItem) {
       return NextResponse.json({ success: false, error: 'Request not found' }, { status: 404 });
@@ -39,24 +38,23 @@ export async function PUT(
 
     const { id } = await params;
     const data = await request.json();
-    const db = getDb();
 
-    const existing = db.prepare('SELECT * FROM equipment_requests WHERE id = ?').get(id);
+    const existing = await queryOne('SELECT * FROM equipment_requests WHERE id = ?', [id]);
     if (!existing) {
       return NextResponse.json({ success: false, error: 'Request not found' }, { status: 404 });
     }
 
     const { status, admin_notes } = data;
 
-    db.prepare(`
+    await execute(`
       UPDATE equipment_requests SET
         status = COALESCE(?, status),
         admin_notes = COALESCE(?, admin_notes),
         updated_at = datetime('now')
       WHERE id = ?
-    `).run(status ?? null, admin_notes ?? null, id);
+    `, [status ?? null, admin_notes ?? null, id]);
 
-    const updated = db.prepare('SELECT * FROM equipment_requests WHERE id = ?').get(id);
+    const updated = await queryOne('SELECT * FROM equipment_requests WHERE id = ?', [id]);
     return NextResponse.json({ success: true, request: updated });
   } catch (error) {
     console.error('Update request error:', error);
@@ -75,14 +73,12 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const db = getDb();
-
-    const existing = db.prepare('SELECT * FROM equipment_requests WHERE id = ?').get(id);
+    const existing = await queryOne('SELECT * FROM equipment_requests WHERE id = ?', [id]);
     if (!existing) {
       return NextResponse.json({ success: false, error: 'Request not found' }, { status: 404 });
     }
 
-    db.prepare('DELETE FROM equipment_requests WHERE id = ?').run(id);
+    await execute('DELETE FROM equipment_requests WHERE id = ?', [id]);
     return NextResponse.json({ success: true, message: 'Request deleted successfully' });
   } catch (error) {
     console.error('Delete request error:', error);

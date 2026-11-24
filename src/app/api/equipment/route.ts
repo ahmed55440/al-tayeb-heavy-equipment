@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
-    const db = getDb();
     const { searchParams } = new URL(request.url);
 
     const category = searchParams.get('category');
@@ -14,7 +13,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const published = searchParams.get('published');
 
-    let query = `
+    let sql = `
       SELECT e.*, 
         c.name_ar as category_name_ar, 
         c.name_en as category_name_en,
@@ -27,36 +26,36 @@ export async function GET(request: NextRequest) {
     const params: (string | number)[] = [];
 
     if (category) {
-      query += ' AND (c.slug = ? OR c.id = ?)';
+      sql += ' AND (c.slug = ? OR c.id = ?)';
       params.push(category, isNaN(Number(category)) ? -1 : Number(category));
     }
 
     if (search) {
-      query += ' AND (e.name_ar LIKE ? OR e.name_en LIKE ? OR e.brand LIKE ? OR e.model LIKE ?)';
+      sql += ' AND (e.name_ar LIKE ? OR e.name_en LIKE ? OR e.brand LIKE ? OR e.model LIKE ?)';
       const searchTerm = `%${search}%`;
       params.push(searchTerm, searchTerm, searchTerm, searchTerm);
     }
 
     if (featured === 'true' || featured === '1') {
-      query += ' AND e.is_featured = 1';
+      sql += ' AND e.is_featured = 1';
     }
 
     if (status) {
-      query += ' AND e.status = ?';
+      sql += ' AND e.status = ?';
       params.push(status);
     }
 
     if (published === 'true' || published === '1') {
-      query += ' AND e.is_published = 1';
+      sql += ' AND e.is_published = 1';
     } else if (published === 'false' || published === '0') {
-      query += ' AND e.is_published = 0';
+      sql += ' AND e.is_published = 0';
     }
 
-    query += ' ORDER BY e.sort_order ASC, e.created_at DESC';
+    sql += ' ORDER BY e.sort_order ASC, e.created_at DESC';
 
-    const equipment = db.prepare(query).all(...params);
+    const equipment = await query(sql, params);
 
-    return NextResponse.json({ success: true, data: equipment });
+    return NextResponse.json({ success: true, data: equipment, equipment });
   } catch (error) {
     console.error('Equipment list error:', error);
     return NextResponse.json(
@@ -76,7 +75,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getDb();
     const body = await request.json();
 
     const {
@@ -99,48 +97,48 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Generate slug from name_en or name_ar
-    let baseSlug = slugify(name_en || name_ar);
+    let baseSlug = slugify(name_en || name_ar) || 'equipment';
     let slug = baseSlug;
     let counter = 1;
 
     // Ensure unique slug
-    while (db.prepare('SELECT id FROM equipment WHERE slug = ?').get(slug)) {
+    while (await queryOne('SELECT id FROM equipment WHERE slug = ?', [slug])) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
 
-    const result = db.prepare(`
+    const result = await execute(`
       INSERT INTO equipment (
         category_id, name_ar, name_en, slug, brand, model, year, price, price_type,
         description_ar, description_en, specs_ar, specs_en, status,
         is_featured, is_published, sort_order
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `, [
       category_id || null,
       name_ar, name_en, slug, brand, model, year, price, price_type,
       description_ar, description_en, specs_ar, specs_en, status,
       is_featured ? 1 : 0, is_published ? 1 : 0, sort_order
-    );
+    ]);
 
     // Handle images if provided
     if (body.images && Array.isArray(body.images)) {
-      const insertImage = db.prepare(
-        'INSERT INTO equipment_images (equipment_id, image_path, sort_order, is_primary) VALUES (?, ?, ?, ?)'
-      );
       for (let i = 0; i < body.images.length; i++) {
         const img = body.images[i];
-        insertImage.run(
-          result.lastInsertRowid,
-          img.image_path || img,
-          img.sort_order ?? i,
-          img.is_primary ?? (i === 0 ? 1 : 0)
+        await execute(
+          'INSERT INTO equipment_images (equipment_id, image_path, sort_order, is_primary) VALUES (?, ?, ?, ?)',
+          [
+            result.lastInsertRowid,
+            img.image_path || img,
+            img.sort_order ?? i,
+            img.is_primary ?? (i === 0 ? 1 : 0)
+          ]
         );
       }
     }
 
-    const equipment = db.prepare('SELECT * FROM equipment WHERE id = ?').get(result.lastInsertRowid);
+    const equipment = await queryOne('SELECT * FROM equipment WHERE id = ?', [result.lastInsertRowid]);
 
-    return NextResponse.json({ success: true, data: equipment }, { status: 201 });
+    return NextResponse.json({ success: true, data: equipment, equipment }, { status: 201 });
   } catch (error) {
     console.error('Equipment create error:', error);
     return NextResponse.json(

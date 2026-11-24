@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import { queryOne, execute } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
 export async function GET(
@@ -8,14 +8,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const db = getDb();
-    const branch = db.prepare('SELECT * FROM branches WHERE id = ?').get(id);
+    const branch = await queryOne('SELECT * FROM branches WHERE id = ?', [id]);
 
     if (!branch) {
       return NextResponse.json({ success: false, error: 'Branch not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, branch });
+    return NextResponse.json({ success: true, branch, data: branch });
   } catch (error) {
     console.error('Get branch error:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch branch' }, { status: 500 });
@@ -34,16 +33,15 @@ export async function PUT(
 
     const { id } = await params;
     const data = await request.json();
-    const db = getDb();
 
-    const existing = db.prepare('SELECT * FROM branches WHERE id = ?').get(id);
+    const existing = await queryOne('SELECT * FROM branches WHERE id = ?', [id]);
     if (!existing) {
       return NextResponse.json({ success: false, error: 'Branch not found' }, { status: 404 });
     }
 
     const { name_ar, name_en, address_ar, address_en, maps_link, phone, sort_order, is_active } = data;
 
-    db.prepare(`
+    await execute(`
       UPDATE branches SET
         name_ar = ?,
         name_en = ?,
@@ -54,7 +52,7 @@ export async function PUT(
         sort_order = ?,
         is_active = ?
       WHERE id = ?
-    `).run(
+    `, [
       name_ar ?? '',
       name_en ?? '',
       address_ar ?? '',
@@ -64,10 +62,10 @@ export async function PUT(
       sort_order ?? 0,
       is_active !== undefined ? (is_active ? 1 : 0) : 1,
       id
-    );
+    ]);
 
-    const updated = db.prepare('SELECT * FROM branches WHERE id = ?').get(id);
-    return NextResponse.json({ success: true, branch: updated });
+    const updated = await queryOne('SELECT * FROM branches WHERE id = ?', [id]);
+    return NextResponse.json({ success: true, branch: updated, data: updated });
   } catch (error) {
     console.error('Update branch error:', error);
     return NextResponse.json({ success: false, error: 'Failed to update branch' }, { status: 500 });
@@ -85,14 +83,12 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const db = getDb();
-
-    const existing = db.prepare('SELECT * FROM branches WHERE id = ?').get(id);
+    const existing = await queryOne('SELECT * FROM branches WHERE id = ?', [id]);
     if (!existing) {
       return NextResponse.json({ success: false, error: 'Branch not found' }, { status: 404 });
     }
 
-    db.prepare('DELETE FROM branches WHERE id = ?').run(id);
+    await execute('DELETE FROM branches WHERE id = ?', [id]);
     return NextResponse.json({ success: true, message: 'Branch deleted successfully' });
   } catch (error) {
     console.error('Delete branch error:', error);

@@ -1,27 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { slugify } from '@/lib/utils';
 
 export async function GET(request: NextRequest) {
   try {
-    const db = getDb();
     const { searchParams } = new URL(request.url);
     const activeOnly = searchParams.get('active');
 
-    let query = 'SELECT * FROM categories';
+    let sql = 'SELECT * FROM categories';
     const params: number[] = [];
 
     if (activeOnly === 'true' || activeOnly === '1') {
-      query += ' WHERE is_active = ?';
+      sql += ' WHERE is_active = ?';
       params.push(1);
     }
 
-    query += ' ORDER BY sort_order ASC, created_at DESC';
+    sql += ' ORDER BY sort_order ASC, created_at DESC';
 
-    const categories = db.prepare(query).all(...params);
+    const categories = await query(sql, params);
 
-    return NextResponse.json({ success: true, data: categories });
+    return NextResponse.json({ success: true, data: categories, categories });
   } catch (error) {
     console.error('Categories list error:', error);
     return NextResponse.json(
@@ -41,7 +40,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getDb();
     const body = await request.json();
 
     const {
@@ -55,22 +53,22 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Generate unique slug
-    let baseSlug = slugify(name_en || name_ar);
+    let baseSlug = slugify(name_en || name_ar) || 'category';
     let slug = baseSlug;
     let counter = 1;
-    while (db.prepare('SELECT id FROM categories WHERE slug = ?').get(slug)) {
+    while (await queryOne('SELECT id FROM categories WHERE slug = ?', [slug])) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
 
-    const result = db.prepare(`
+    const result = await execute(`
       INSERT INTO categories (name_ar, name_en, slug, description_ar, description_en, image, sort_order, is_active)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(name_ar, name_en, slug, description_ar, description_en, image, sort_order, is_active ? 1 : 0);
+    `, [name_ar, name_en, slug, description_ar, description_en, image, sort_order, is_active ? 1 : 0]);
 
-    const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(result.lastInsertRowid);
+    const category = await queryOne('SELECT * FROM categories WHERE id = ?', [result.lastInsertRowid]);
 
-    return NextResponse.json({ success: true, data: category }, { status: 201 });
+    return NextResponse.json({ success: true, data: category, category }, { status: 201 });
   } catch (error) {
     console.error('Category create error:', error);
     return NextResponse.json(

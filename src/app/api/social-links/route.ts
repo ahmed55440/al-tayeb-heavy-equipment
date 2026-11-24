@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const db = getDb();
     const { searchParams } = new URL(request.url);
     const all = searchParams.get('all') === 'true';
 
-    let query = 'SELECT * FROM social_links';
+    let sql = 'SELECT * FROM social_links';
     if (!all) {
-      query += ' WHERE is_active = 1';
+      sql += ' WHERE is_active = 1';
     }
-    query += ' ORDER BY sort_order ASC, id ASC';
+    sql += ' ORDER BY sort_order ASC, id ASC';
 
-    const links = db.prepare(query).all();
-    return NextResponse.json({ success: true, links });
+    const links = await query(sql);
+    return NextResponse.json({ success: true, links, data: links });
   } catch (error) {
     console.error('Fetch social links error:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch social links' }, { status: 500 });
@@ -36,20 +35,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Platform and URL are required' }, { status: 400 });
     }
 
-    const db = getDb();
-    const result = db.prepare(`
+    const result = await execute(`
       INSERT INTO social_links (platform, url, icon, sort_order, is_active)
       VALUES (?, ?, ?, ?, ?)
-    `).run(
+    `, [
       platform,
       url,
       icon || '',
       sort_order ?? 0,
       is_active !== undefined ? (is_active ? 1 : 0) : 1
-    );
+    ]);
 
-    const newLink = db.prepare('SELECT * FROM social_links WHERE id = ?').get(result.lastInsertRowid);
-    return NextResponse.json({ success: true, link: newLink }, { status: 201 });
+    const newLink = await queryOne('SELECT * FROM social_links WHERE id = ?', [result.lastInsertRowid]);
+    return NextResponse.json({ success: true, link: newLink, data: newLink }, { status: 201 });
   } catch (error) {
     console.error('Create social link error:', error);
     return NextResponse.json({ success: false, error: 'Failed to create social link' }, { status: 500 });

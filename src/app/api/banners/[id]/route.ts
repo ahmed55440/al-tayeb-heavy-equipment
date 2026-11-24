@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import { queryOne, execute } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -7,9 +7,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
-    const db = getDb();
-
-    const banner = db.prepare('SELECT * FROM banners WHERE id = ?').get(Number(id));
+    const banner = await queryOne('SELECT * FROM banners WHERE id = ?', [Number(id)]);
     if (!banner) {
       return NextResponse.json(
         { success: false, error: 'Banner not found' },
@@ -17,7 +15,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    return NextResponse.json({ success: true, data: banner });
+    return NextResponse.json({ success: true, data: banner, banner });
   } catch (error) {
     console.error('Banner get error:', error);
     return NextResponse.json(
@@ -38,10 +36,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     const { id } = await context.params;
-    const db = getDb();
     const body = await request.json();
 
-    const existing = db.prepare('SELECT * FROM banners WHERE id = ?').get(Number(id)) as Record<string, unknown> | undefined;
+    const existing = await queryOne<Record<string, unknown>>('SELECT * FROM banners WHERE id = ?', [Number(id)]);
     if (!existing) {
       return NextResponse.json(
         { success: false, error: 'Banner not found' },
@@ -49,12 +46,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
-    db.prepare(`
+    await execute(`
       UPDATE banners SET
         title_ar = ?, title_en = ?, description_ar = ?, description_en = ?,
         image_desktop = ?, image_mobile = ?, sort_order = ?, is_active = ?
       WHERE id = ?
-    `).run(
+    `, [
       body.title_ar ?? existing.title_ar,
       body.title_en ?? existing.title_en,
       body.description_ar ?? existing.description_ar,
@@ -64,10 +61,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       body.sort_order ?? existing.sort_order,
       body.is_active !== undefined ? (body.is_active ? 1 : 0) : existing.is_active,
       Number(id)
-    );
+    ]);
 
-    const updated = db.prepare('SELECT * FROM banners WHERE id = ?').get(Number(id));
-    return NextResponse.json({ success: true, data: updated });
+    const updated = await queryOne('SELECT * FROM banners WHERE id = ?', [Number(id)]);
+    return NextResponse.json({ success: true, data: updated, banner: updated });
   } catch (error) {
     console.error('Banner update error:', error);
     return NextResponse.json(
@@ -88,9 +85,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     }
 
     const { id } = await context.params;
-    const db = getDb();
-
-    const existing = db.prepare('SELECT id FROM banners WHERE id = ?').get(Number(id));
+    const existing = await queryOne('SELECT id FROM banners WHERE id = ?', [Number(id)]);
     if (!existing) {
       return NextResponse.json(
         { success: false, error: 'Banner not found' },
@@ -98,8 +93,8 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    db.prepare('DELETE FROM banners WHERE id = ?').run(Number(id));
-    return NextResponse.json({ success: true });
+    await execute('DELETE FROM banners WHERE id = ?', [Number(id)]);
+    return NextResponse.json({ success: true, message: 'Banner deleted successfully' });
   } catch (error) {
     console.error('Banner delete error:', error);
     return NextResponse.json(

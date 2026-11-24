@@ -1,4 +1,4 @@
-import getDb from '@/lib/db';
+import { query, queryOne } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -27,55 +27,50 @@ interface PageProps {
 }
 
 async function getEquipmentDetail(slug: string) {
-  const db = getDb();
-
   // Find equipment by slug or id
-  const equipment = db
-    .prepare(`
-      SELECT e.*, 
-        c.name_ar as category_name_ar, 
-        c.name_en as category_name_en,
-        c.slug as category_slug
-      FROM equipment e
-      LEFT JOIN categories c ON e.category_id = c.id
-      WHERE (e.slug = ? OR e.id = ?) AND e.is_published = 1
-    `)
-    .get(slug, isNaN(Number(slug)) ? -1 : Number(slug)) as any;
+  const equipment = await queryOne(`
+    SELECT e.*, 
+      c.name_ar as category_name_ar, 
+      c.name_en as category_name_en,
+      c.slug as category_slug
+    FROM equipment e
+    LEFT JOIN categories c ON e.category_id = c.id
+    WHERE (e.slug = ? OR e.id = ?) AND e.is_published = 1
+  `, [slug, isNaN(Number(slug)) ? -1 : Number(slug)]) as any;
 
   if (!equipment) return null;
 
   // Images
-  const images = db
-    .prepare('SELECT id, image_path FROM equipment_images WHERE equipment_id = ? ORDER BY is_primary DESC, sort_order ASC')
-    .all(equipment.id) as Array<{ id: number; image_path: string }>;
+  const images = await query<{ id: number; image_path: string }>(
+    'SELECT id, image_path FROM equipment_images WHERE equipment_id = ? ORDER BY is_primary DESC, sort_order ASC',
+    [equipment.id]
+  );
 
   equipment.images = images;
 
   // Settings for WhatsApp & Phone
-  const settingsRows = db.prepare('SELECT * FROM settings').all() as Array<{
+  const settingsRows = await query<{
     key: string;
     value_ar: string;
     value_en: string;
-  }>;
+  }>('SELECT * FROM settings');
   const settings: Record<string, string> = {};
   for (const s of settingsRows) {
     settings[s.key] = s.value_ar || s.value_en || '';
   }
 
   // Related equipment from the same category
-  const related = db
-    .prepare(`
-      SELECT e.*, 
-        c.name_ar as category_name_ar, 
-        c.name_en as category_name_en,
-        (SELECT image_path FROM equipment_images WHERE equipment_id = e.id AND is_primary = 1 LIMIT 1) as primary_image
-      FROM equipment e
-      LEFT JOIN categories c ON e.category_id = c.id
-      WHERE e.category_id = ? AND e.id != ? AND e.is_published = 1
-      ORDER BY e.sort_order ASC, e.id DESC
-      LIMIT 3
-    `)
-    .all(equipment.category_id, equipment.id) as any[];
+  const related = await query(`
+    SELECT e.*, 
+      c.name_ar as category_name_ar, 
+      c.name_en as category_name_en,
+      (SELECT image_path FROM equipment_images WHERE equipment_id = e.id AND is_primary = 1 LIMIT 1) as primary_image
+    FROM equipment e
+    LEFT JOIN categories c ON e.category_id = c.id
+    WHERE e.category_id = ? AND e.id != ? AND e.is_published = 1
+    ORDER BY e.sort_order ASC, e.id DESC
+    LIMIT 3
+  `, [equipment.category_id, equipment.id]);
 
   return { equipment, settings, related };
 }

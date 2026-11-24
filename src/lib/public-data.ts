@@ -1,26 +1,24 @@
-import getDb from '@/lib/db';
+import { query } from '@/lib/db';
 
 export async function getPublicLayoutData() {
-  const db = getDb();
-
-  const settingsRows = db.prepare('SELECT * FROM settings').all() as Array<{
+  const settingsRows = await query<{
     key: string;
     value_ar: string;
     value_en: string;
-  }>;
+  }>('SELECT * FROM settings');
 
   const settings: Record<string, { ar: string; en: string }> = {};
   for (const s of settingsRows) {
     settings[s.key] = { ar: s.value_ar || '', en: s.value_en || '' };
   }
 
-  const socialLinks = db
-    .prepare('SELECT * FROM social_links WHERE is_active = 1 ORDER BY sort_order ASC, id ASC')
-    .all() as any[];
+  const socialLinks = await query(
+    'SELECT * FROM social_links WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+  );
 
-  const branches = db
-    .prepare('SELECT * FROM branches WHERE is_active = 1 ORDER BY sort_order ASC, id ASC')
-    .all() as any[];
+  const branches = await query(
+    'SELECT * FROM branches WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+  );
 
   return {
     siteNameAr: settings['site_name_ar']?.ar || 'معرض الطيب للمعدات الثقيلة',

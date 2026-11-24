@@ -1,4 +1,4 @@
-import getDb from '@/lib/db';
+import { query } from '@/lib/db';
 import ContactSection from '@/components/contact/ContactSection';
 import type { Metadata } from 'next';
 
@@ -9,21 +9,19 @@ export const metadata: Metadata = {
   description: 'تواصل مع معرض الطيب للمعدات الثقيلة، تعرف على فروعنا في طريق السويس والإسكندرية، واحصل على استشارة هندسية فورية.',
 };
 
-export default function ContactPage() {
-  const db = getDb();
+export default async function ContactPage() {
+  const branches = await query(
+    'SELECT * FROM branches WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+  );
 
-  const branches = db
-    .prepare('SELECT * FROM branches WHERE is_active = 1 ORDER BY sort_order ASC, id ASC')
-    .all() as any[];
+  const socialLinks = await query(
+    'SELECT * FROM social_links WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+  );
 
-  const socialLinks = db
-    .prepare('SELECT * FROM social_links WHERE is_active = 1 ORDER BY sort_order ASC, id ASC')
-    .all() as any[];
-
-  const settingsRows = db.prepare('SELECT * FROM settings').all() as Array<{
+  const settingsRows = await query<{
     key: string;
     value_ar: string;
-  }>;
+  }>('SELECT * FROM settings');
   const settings: Record<string, string> = {};
   for (const s of settingsRows) {
     settings[s.key] = s.value_ar || '';

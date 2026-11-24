@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { generateRefNumber } from '@/lib/utils';
 
@@ -14,24 +14,23 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const search = searchParams.get('search');
 
-    let query = 'SELECT * FROM equipment_requests WHERE 1=1';
+    let sql = 'SELECT * FROM equipment_requests WHERE 1=1';
     const params: (string | number)[] = [];
 
     if (status && status !== 'all') {
-      query += ' AND status = ?';
+      sql += ' AND status = ?';
       params.push(status);
     }
 
     if (search) {
-      query += ' AND (customer_name LIKE ? OR phone LIKE ? OR equipment_name LIKE ? OR ref_number LIKE ?)';
+      sql += ' AND (customer_name LIKE ? OR phone LIKE ? OR equipment_name LIKE ? OR ref_number LIKE ?)';
       const term = `%${search}%`;
       params.push(term, term, term, term);
     }
 
-    query += ' ORDER BY created_at DESC';
+    sql += ' ORDER BY created_at DESC';
 
-    const db = getDb();
-    const requests = db.prepare(query).all(...params);
+    const requests = await query(sql, params);
 
     return NextResponse.json({ success: true, requests });
   } catch (error) {
@@ -53,13 +52,12 @@ export async function POST(request: NextRequest) {
     }
 
     const ref_number = generateRefNumber();
-    const db = getDb();
 
-    const result = db.prepare(`
+    const result = await execute(`
       INSERT INTO equipment_requests (
         ref_number, customer_name, phone, equipment_name, brand, model, specs, notes, status, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'new', datetime('now'), datetime('now'))
-    `).run(
+    `, [
       ref_number,
       customer_name.trim(),
       phone.trim(),
@@ -68,9 +66,9 @@ export async function POST(request: NextRequest) {
       model ? model.trim() : '',
       specs ? specs.trim() : '',
       notes ? notes.trim() : ''
-    );
+    ]);
 
-    const savedRequest = db.prepare('SELECT * FROM equipment_requests WHERE id = ?').get(result.lastInsertRowid);
+    const savedRequest = await queryOne('SELECT * FROM equipment_requests WHERE id = ?', [result.lastInsertRowid]);
 
     return NextResponse.json(
       {

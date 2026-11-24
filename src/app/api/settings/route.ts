@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import { query, execute } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const db = getDb();
-    const rows = db.prepare('SELECT * FROM settings').all() as Array<{
+    const rows = await query<{
       key: string;
       value_ar: string;
       value_en: string;
       type: string;
-    }>;
+    }>('SELECT * FROM settings');
 
     const settings: Record<string, { ar: string; en: string; type: string }> = {};
     for (const row of rows) {
@@ -40,8 +39,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Setting key is required' }, { status: 400 });
     }
 
-    const db = getDb();
-    db.prepare(`
+    await execute(`
       INSERT INTO settings (key, value_ar, value_en, type, updated_at)
       VALUES (?, ?, ?, ?, datetime('now'))
       ON CONFLICT(key) DO UPDATE SET
@@ -49,10 +47,9 @@ export async function PUT(request: NextRequest) {
         value_en = excluded.value_en,
         type = COALESCE(excluded.type, settings.type),
         updated_at = datetime('now')
-    `).run(key, value_ar ?? '', value_en ?? '', type ?? 'text');
+    `, [key, value_ar ?? '', value_en ?? '', type ?? 'text']);
 
-    const updated = db.prepare('SELECT * FROM settings WHERE key = ?').get(key);
-    return NextResponse.json({ success: true, setting: updated });
+    return NextResponse.json({ success: true, message: 'Setting updated successfully' });
   } catch (error) {
     console.error('Update setting error:', error);
     return NextResponse.json({ success: false, error: 'Failed to update setting' }, { status: 500 });

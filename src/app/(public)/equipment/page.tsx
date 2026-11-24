@@ -1,34 +1,31 @@
-import getDb from '@/lib/db';
+import { query } from '@/lib/db';
 import EquipmentCatalog from '@/components/equipment/EquipmentCatalog';
 import { Truck } from 'lucide-react';
 
 export const revalidate = 0;
 
 async function getEquipmentPageData() {
-  const db = getDb();
+  const categories = await query(
+    'SELECT id, name_ar, name_en, slug FROM categories WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+  );
 
-  const categories = db
-    .prepare('SELECT id, name_ar, name_en, slug FROM categories WHERE is_active = 1 ORDER BY sort_order ASC, id ASC')
-    .all() as any[];
-
-  const equipmentList = db
-    .prepare(`
-      SELECT e.*, 
-        c.name_ar as category_name_ar, 
-        c.name_en as category_name_en,
-        c.slug as category_slug,
-        (SELECT image_path FROM equipment_images WHERE equipment_id = e.id AND is_primary = 1 LIMIT 1) as primary_image
-      FROM equipment e
-      LEFT JOIN categories c ON e.category_id = c.id
-      WHERE e.is_published = 1
-      ORDER BY e.sort_order ASC, e.id DESC
-    `)
-    .all() as any[];
+  const equipmentList = await query(`
+    SELECT e.*, 
+      c.name_ar as category_name_ar, 
+      c.name_en as category_name_en,
+      c.slug as category_slug,
+      (SELECT image_path FROM equipment_images WHERE equipment_id = e.id AND is_primary = 1 LIMIT 1) as primary_image
+    FROM equipment e
+    LEFT JOIN categories c ON e.category_id = c.id
+    WHERE e.is_published = 1
+    ORDER BY e.sort_order ASC, e.id DESC
+  `);
 
   for (const eq of equipmentList) {
-    const imgs = db
-      .prepare('SELECT image_path FROM equipment_images WHERE equipment_id = ? ORDER BY is_primary DESC, sort_order ASC')
-      .all(eq.id) as Array<{ image_path: string }>;
+    const imgs = await query<{ image_path: string }>(
+      'SELECT image_path FROM equipment_images WHERE equipment_id = ? ORDER BY is_primary DESC, sort_order ASC',
+      [eq.id]
+    );
     eq.images = imgs.map((i) => i.image_path);
   }
 

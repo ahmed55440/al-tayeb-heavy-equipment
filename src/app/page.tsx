@@ -1,4 +1,4 @@
-import getDb from '@/lib/db';
+import { query } from '@/lib/db';
 import Header from '@/components/header/Header';
 import HeroSlider from '@/components/hero/HeroSlider';
 import CategoriesSection from '@/components/categories/CategoriesSection';
@@ -14,79 +14,74 @@ import { ArrowLeft, ArrowRight, Truck } from 'lucide-react';
 export const revalidate = 0; // dynamic on every request
 
 async function getHomePageData() {
-  const db = getDb();
-
   // Settings
-  const settingsRows = db.prepare('SELECT * FROM settings').all() as Array<{
+  const settingsRows = await query<{
     key: string;
     value_ar: string;
     value_en: string;
-  }>;
+  }>('SELECT * FROM settings');
   const settings: Record<string, { ar: string; en: string }> = {};
   for (const s of settingsRows) {
     settings[s.key] = { ar: s.value_ar || '', en: s.value_en || '' };
   }
 
   // Active Banners
-  const banners = db
-    .prepare('SELECT * FROM banners WHERE is_active = 1 ORDER BY sort_order ASC, id ASC')
-    .all() as any[];
+  const banners = await query(
+    'SELECT * FROM banners WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+  );
 
   // Active Categories
-  const categories = db
-    .prepare('SELECT * FROM categories WHERE is_active = 1 ORDER BY sort_order ASC, id ASC')
-    .all() as any[];
+  const categories = await query(
+    'SELECT * FROM categories WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+  );
 
   // Featured Equipment
-  const featuredEquipment = db
-    .prepare(`
+  const featuredEquipment = await query(`
+    SELECT e.*, 
+      c.name_ar as category_name_ar, 
+      c.name_en as category_name_en,
+      (SELECT image_path FROM equipment_images WHERE equipment_id = e.id AND is_primary = 1 LIMIT 1) as primary_image
+    FROM equipment e
+    LEFT JOIN categories c ON e.category_id = c.id
+    WHERE e.is_published = 1 AND e.is_featured = 1
+    ORDER BY e.sort_order ASC, e.id DESC
+    LIMIT 6
+  `);
+
+  // If not enough featured, get latest equipment
+  let equipmentList = featuredEquipment;
+  if (equipmentList.length === 0) {
+    equipmentList = await query(`
       SELECT e.*, 
         c.name_ar as category_name_ar, 
         c.name_en as category_name_en,
         (SELECT image_path FROM equipment_images WHERE equipment_id = e.id AND is_primary = 1 LIMIT 1) as primary_image
       FROM equipment e
       LEFT JOIN categories c ON e.category_id = c.id
-      WHERE e.is_published = 1 AND e.is_featured = 1
+      WHERE e.is_published = 1
       ORDER BY e.sort_order ASC, e.id DESC
       LIMIT 6
-    `)
-    .all() as any[];
-
-  // If not enough featured, get latest equipment
-  let equipmentList = featuredEquipment;
-  if (equipmentList.length === 0) {
-    equipmentList = db
-      .prepare(`
-        SELECT e.*, 
-          c.name_ar as category_name_ar, 
-          c.name_en as category_name_en,
-          (SELECT image_path FROM equipment_images WHERE equipment_id = e.id AND is_primary = 1 LIMIT 1) as primary_image
-        FROM equipment e
-        LEFT JOIN categories c ON e.category_id = c.id
-        WHERE e.is_published = 1
-        ORDER BY e.sort_order ASC, e.id DESC
-        LIMIT 6
-      `)
-      .all() as any[];
+    `);
   }
 
   // Fetch images for each equipment item
   for (const eq of equipmentList) {
-    const imgs = db
-      .prepare('SELECT image_path FROM equipment_images WHERE equipment_id = ? ORDER BY is_primary DESC, sort_order ASC')
-      .all(eq.id) as Array<{ image_path: string }>;
+    const imgs = await query<{ image_path: string }>(
+      'SELECT image_path FROM equipment_images WHERE equipment_id = ? ORDER BY is_primary DESC, sort_order ASC',
+      [eq.id]
+    );
     eq.images = imgs.map((i) => i.image_path);
   }
 
   // Active Branches
-  const branches = db
-    .prepare('SELECT * FROM branches WHERE is_active = 1 ORDER BY sort_order ASC, id ASC')
-    .all() as any[];
+  const branches = await query(
+    'SELECT * FROM branches WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+  );
 
   // Active Social Links
-  const socialLinks = db
-    .prepare('SELECT * FROM social_links WHERE is_active = 1 ORDER BY sort_order ASC, id ASC')
-    .all() as any[];
+  const socialLinks = await query(
+    'SELECT * FROM social_links WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+  );
 
   return {
     settings,

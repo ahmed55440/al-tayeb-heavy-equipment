@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import { queryOne, execute } from '@/lib/db';
 import { hashPassword } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const db = getDb();
-
     // Check if any admin user already exists
-    const existingAdmin = db.prepare('SELECT COUNT(*) as count FROM admin_users').get() as { count: number };
-    if (existingAdmin.count > 0) {
+    const existingAdmin = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM admin_users');
+    if (existingAdmin && existingAdmin.count > 0) {
       return NextResponse.json(
         { success: false, error: 'Admin user already exists. Setup is disabled.' },
         { status: 403 }
@@ -32,9 +30,9 @@ export async function POST(request: NextRequest) {
     }
 
     const passwordHash = await hashPassword(password);
-    const result = db.prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)').run(
-      username,
-      passwordHash
+    const result = await execute(
+      'INSERT INTO admin_users (username, password_hash) VALUES (?, ?)',
+      [username, passwordHash]
     );
 
     return NextResponse.json({

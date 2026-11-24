@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import { queryOne, execute } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 
 export async function GET(
@@ -8,14 +8,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const db = getDb();
-    const link = db.prepare('SELECT * FROM social_links WHERE id = ?').get(id);
+    const link = await queryOne('SELECT * FROM social_links WHERE id = ?', [id]);
 
     if (!link) {
       return NextResponse.json({ success: false, error: 'Social link not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, link });
+    return NextResponse.json({ success: true, link, data: link });
   } catch (error) {
     console.error('Get social link error:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch social link' }, { status: 500 });
@@ -34,16 +33,15 @@ export async function PUT(
 
     const { id } = await params;
     const data = await request.json();
-    const db = getDb();
 
-    const existing = db.prepare('SELECT * FROM social_links WHERE id = ?').get(id) as any;
+    const existing = await queryOne<any>('SELECT * FROM social_links WHERE id = ?', [id]);
     if (!existing) {
       return NextResponse.json({ success: false, error: 'Social link not found' }, { status: 404 });
     }
 
     const { platform, url, icon, sort_order, is_active } = data;
 
-    db.prepare(`
+    await execute(`
       UPDATE social_links SET
         platform = ?,
         url = ?,
@@ -51,17 +49,17 @@ export async function PUT(
         sort_order = ?,
         is_active = ?
       WHERE id = ?
-    `).run(
+    `, [
       platform ?? existing.platform,
       url ?? existing.url,
       icon ?? existing.icon,
       sort_order ?? 0,
       is_active !== undefined ? (is_active ? 1 : 0) : 1,
       id
-    );
+    ]);
 
-    const updated = db.prepare('SELECT * FROM social_links WHERE id = ?').get(id);
-    return NextResponse.json({ success: true, link: updated });
+    const updated = await queryOne('SELECT * FROM social_links WHERE id = ?', [id]);
+    return NextResponse.json({ success: true, link: updated, data: updated });
   } catch (error) {
     console.error('Update social link error:', error);
     return NextResponse.json({ success: false, error: 'Failed to update social link' }, { status: 500 });
@@ -79,14 +77,12 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const db = getDb();
-
-    const existing = db.prepare('SELECT * FROM social_links WHERE id = ?').get(id) as any;
+    const existing = await queryOne<any>('SELECT * FROM social_links WHERE id = ?', [id]);
     if (!existing) {
       return NextResponse.json({ success: false, error: 'Social link not found' }, { status: 404 });
     }
 
-    db.prepare('DELETE FROM social_links WHERE id = ?').run(id);
+    await execute('DELETE FROM social_links WHERE id = ?', [id]);
     return NextResponse.json({ success: true, message: 'Social link deleted successfully' });
   } catch (error) {
     console.error('Delete social link error:', error);

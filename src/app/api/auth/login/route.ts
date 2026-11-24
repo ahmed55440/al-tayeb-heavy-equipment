@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getDb from '@/lib/db';
+import { queryOne } from '@/lib/db';
 import { verifyPassword, createToken, COOKIE_NAME } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -13,12 +13,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getDb();
-    const user = db.prepare('SELECT * FROM admin_users WHERE username = ?').get(username) as {
+    const user = await queryOne<{
       id: number;
       username: string;
       password_hash: string;
-    } | undefined;
+    }>('SELECT * FROM admin_users WHERE username = ?', [username]);
 
     if (!user) {
       return NextResponse.json(
