@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAdminLocale } from '@/lib/admin-i18n';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 interface SidebarProps {
   username: string;
@@ -72,7 +73,7 @@ export default function Sidebar({ username }: SidebarProps) {
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-lg bg-[#1a1a1a] hover:bg-[#252525] text-gray-400 hover:text-white flex-shrink-0"
+          className="p-1.5 rounded-lg bg-[#1a1a1a] hover:bg-[#252525] text-gray-400 hover:text-white flex-shrink-0 cursor-pointer"
           title={collapsed ? 'توسيع' : 'طي'}
         >
           {collapsed ? (
@@ -83,11 +84,12 @@ export default function Sidebar({ username }: SidebarProps) {
         </button>
       </div>
 
-      {/* Language Switcher Button in Sidebar */}
-      <div className="px-3 pt-3">
+      {/* Language & Theme Controls in Sidebar */}
+      <div className="px-3 pt-3 flex flex-col gap-2">
         <button
+          type="button"
           onClick={toggleLocale}
-          className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-[#1A1A1A] hover:bg-[#222] border border-[#2a2a2a] rounded-xl text-xs font-bold text-gray-300 hover:text-[#F5C400] transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-[#1A1A1A] hover:bg-[#222] border border-[#2a2a2a] rounded-xl text-xs font-bold text-gray-300 hover:text-[#F5C400] transition-colors cursor-pointer"
           title={isRtl ? 'التبديل إلى الإنجليزية' : 'Switch to Arabic'}
         >
           <Globe size={14} className="text-[#F5C400]" />
@@ -97,6 +99,9 @@ export default function Sidebar({ username }: SidebarProps) {
             </span>
           )}
         </button>
+
+        {/* Theme Switcher Toggle */}
+        <ThemeToggle showLabel={!collapsed} className="w-full justify-center" />
       </div>
 
       {/* Navigation */}
@@ -144,7 +149,7 @@ export default function Sidebar({ username }: SidebarProps) {
           )}
           <button
             onClick={handleLogout}
-            className="p-2 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0"
+            className="p-2 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors flex-shrink-0 cursor-pointer"
             title={t('logout')}
           >
             <LogOut size={16} />

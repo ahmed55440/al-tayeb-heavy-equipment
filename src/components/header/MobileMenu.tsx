@@ -12,9 +12,10 @@ import {
   HelpCircle,
   Bell,
   Globe,
-  ExternalLink,
 } from 'lucide-react';
 import { useLocale } from '@/components/ui/LocaleProvider';
+import ThemeToggle from '@/components/ui/ThemeToggle';
+import { useTheme } from '@/components/ui/ThemeProvider';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -36,6 +37,9 @@ export default function MobileMenu({
   whatsapp,
 }: MobileMenuProps) {
   const { locale, toggleLocale, isRtl } = useLocale();
+  const { theme } = useTheme();
+
+  const isLight = theme === 'light';
 
   // Prevent background body scroll when open
   useEffect(() => {
@@ -107,12 +111,14 @@ export default function MobileMenu({
 
       {/* Menu Drawer */}
       <div
-        className={`relative z-10 w-full max-w-md bg-[#0D0D0D] border-l border-[#222] h-full flex flex-col justify-between shadow-2xl p-6 overflow-y-auto animate-in slide-in-from-right duration-300`}
+        className={`relative z-10 w-full max-w-md ${
+          isLight ? 'bg-white border-l border-gray-200' : 'bg-[#0D0D0D] border-l border-[#222]'
+        } h-full flex flex-col justify-between shadow-2xl p-6 overflow-y-auto animate-in slide-in-from-right duration-300`}
         dir={isRtl ? 'rtl' : 'ltr'}
       >
         {/* Top Header */}
         <div>
-          <div className="flex items-center justify-between pb-6 border-b border-[#222]">
+          <div className="flex items-center justify-between pb-6 border-b border-gray-200 dark:border-[#222]">
             <div className="flex items-center gap-3">
               {logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -127,7 +133,7 @@ export default function MobileMenu({
                 </div>
               )}
               <div>
-                <h3 className="font-bold text-white text-base leading-tight">
+                <h3 className="font-bold text-gray-900 dark:text-white text-base leading-tight">
                   {isRtl ? siteNameAr : siteNameEn}
                 </h3>
                 <p className="text-[11px] text-[#F5C400] font-medium">
@@ -138,7 +144,7 @@ export default function MobileMenu({
 
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-white bg-[#1A1A1A] hover:bg-[#252525] rounded-xl transition-colors"
+              className="p-2 text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white bg-gray-100 hover:bg-gray-200 dark:bg-[#1A1A1A] dark:hover:bg-[#252525] rounded-xl transition-colors cursor-pointer"
               aria-label="Close menu"
             >
               <X className="w-5 h-5" />
@@ -156,15 +162,15 @@ export default function MobileMenu({
                   onClick={onClose}
                   className={`flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all group ${
                     item.highlight
-                      ? 'bg-[#F5C400]/10 text-[#F5C400] border border-[#F5C400]/30 hover:bg-[#F5C400]/20'
-                      : 'text-gray-300 hover:text-white hover:bg-[#1A1A1A]'
+                      ? 'bg-[#F5C400]/15 text-[#B45309] dark:text-[#F5C400] border border-[#F5C400]/30 hover:bg-[#F5C400]/25'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#1A1A1A]'
                   }`}
                 >
                   <div
                     className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
                       item.highlight
                         ? 'bg-[#F5C400] text-black'
-                        : 'bg-[#181818] text-gray-400 group-hover:text-[#F5C400] group-hover:bg-[#222]'
+                        : 'bg-gray-100 dark:bg-[#181818] text-gray-600 dark:text-gray-400 group-hover:text-[#F5C400] group-hover:bg-gray-200 dark:group-hover:bg-[#222]'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -179,20 +185,19 @@ export default function MobileMenu({
         </div>
 
         {/* Bottom Drawer Actions */}
-        <div className="pt-6 border-t border-[#222] space-y-4">
-          {/* Language Switcher pill */}
-          <button
-            onClick={toggleLocale}
-            className="w-full flex items-center justify-between px-4 py-3 bg-[#151515] hover:bg-[#1E1E1E] border border-[#2a2a2a] rounded-xl text-xs font-semibold text-gray-300 transition-colors"
-          >
-            <span className="flex items-center gap-2">
+        <div className="pt-6 border-t border-gray-200 dark:border-[#222] space-y-4">
+          {/* Quick Controls: Theme Toggle & Language */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={toggleLocale}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-[#151515] dark:hover:bg-[#1E1E1E] border border-gray-200 dark:border-[#2a2a2a] rounded-xl text-xs font-semibold text-gray-800 dark:text-gray-300 transition-colors"
+            >
               <Globe className="w-4 h-4 text-[#F5C400]" />
-              <span>{isRtl ? 'تغيير اللغة' : 'Change Language'}</span>
-            </span>
-            <span className="text-[#F5C400] font-bold">
-              {locale === 'ar' ? 'English (EN)' : 'العربية (AR)'}
-            </span>
-          </button>
+              <span>{locale === 'ar' ? 'English' : 'العربية'}</span>
+            </button>
+
+            <ThemeToggle showLabel className="w-full justify-center" />
+          </div>
 
           {/* Contact shortcuts */}
           {(phone || whatsapp) && (
@@ -210,7 +215,7 @@ export default function MobileMenu({
               {phone && (
                 <a
                   href={`tel:${phone.replace(/[^0-9+]/g, '')}`}
-                  className="bg-[#1A1A1A] hover:bg-[#252525] text-white border border-[#333] py-2.5 rounded-xl font-bold transition-colors"
+                  className="bg-gray-100 hover:bg-gray-200 dark:bg-[#1A1A1A] dark:hover:bg-[#252525] text-gray-900 dark:text-white border border-gray-200 dark:border-[#333] py-2.5 rounded-xl font-bold transition-colors"
                 >
                   {isRtl ? 'اتصال هاتف' : 'Call Phone'}
                 </a>
@@ -218,7 +223,7 @@ export default function MobileMenu({
             </div>
           )}
 
-          <p className="text-center text-[10px] text-gray-600">
+          <p className="text-center text-[10px] text-gray-500">
             معرض الطيب للمعدات الثقيلة © {new Date().getFullYear()}
           </p>
         </div>

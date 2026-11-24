@@ -18,69 +18,66 @@ export default function CinematicIntro({
 }: CinematicIntroProps) {
   const [show, setShow] = useState(false);
   const [fadingOut, setFadingOut] = useState(false);
-  const [loaderPosition, setLoaderPosition] = useState(110); // start offscreen right (110%)
-  const [revealText, setRevealText] = useState(false);
+  const [loaderPosition, setLoaderPosition] = useState(115); // Starts offscreen right (115%)
+  const [revealName, setRevealName] = useState(false);
   const [revealLogo, setRevealLogo] = useState(false);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameRef = useRef<number | null>(null);
+  const exhaustRef = useRef<HTMLDivElement>(null);
+  const animFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // If disabled from admin settings, do not show
     if (!enabled) return;
 
-    // Check if reduced motion is preferred
+    // Respect reduced motion
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReducedMotion) return;
 
-    // Check if already seen this session
+    // Show only once per browser session
     const hasSeen = sessionStorage.getItem('altayeb_intro_seen');
     if (hasSeen) return;
 
     setShow(true);
 
-    // Timeline Sequence:
-    // 0s: start black screen
-    // 0.3s -> 3.2s: loader moves from right (110%) to left (-30%), pushing sand & spawning dust
-    // 2.2s: dust spreads, reveal showroom name
-    // 2.7s: reveal logo
-    // 4.5s: fade out intro completely
-
     const startTime = performance.now();
-    const duration = 2800; // ms for loader crossing
+    const duration = 3000; // 3 seconds crossing
 
-    const animateLoader = (now: number) => {
+    const animate = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      // Easing function for heavy machinery: constant power movement
-      const pos = 110 - progress * 135; // from 110% down to -25%
-      setLoaderPosition(pos);
 
-      if (progress > 0.45 && !revealText) {
-        setRevealText(true);
+      // Heavy machinery steady powerful movement from 115% down to -35%
+      const currentPos = 115 - progress * 150;
+      setLoaderPosition(currentPos);
+
+      // Trigger cinematic reveals in sequence
+      if (progress > 0.42 && !revealName) {
+        setRevealName(true);
       }
-      if (progress > 0.65 && !revealLogo) {
+      if (progress > 0.62 && !revealLogo) {
         setRevealLogo(true);
       }
 
       if (progress < 1) {
-        animationFrameRef.current = requestAnimationFrame(animateLoader);
+        animFrameRef.current = requestAnimationFrame(animate);
       }
     };
 
-    animationFrameRef.current = requestAnimationFrame(animateLoader);
+    animFrameRef.current = requestAnimationFrame(animate);
 
-    const fadeOutTimer = setTimeout(() => {
+    // Fade out and transition smoothly into homepage
+    const fadeTimer = setTimeout(() => {
       handleComplete();
-    }, 4500);
+    }, 4800);
 
     return () => {
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      clearTimeout(fadeOutTimer);
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      clearTimeout(fadeTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
 
-  // Particle simulation for sand, dust & smoke
+  // Particle physics simulation: Exhaust smoke & Ground dust
   useEffect(() => {
     if (!show || !canvasRef.current) return;
 
@@ -98,51 +95,88 @@ export default function CinematicIntro({
     };
     window.addEventListener('resize', handleResize);
 
-    interface Particle {
+    interface SmokeParticle {
       x: number;
       y: number;
       vx: number;
       vy: number;
       size: number;
-      color: string;
+      maxSize: number;
+      growth: number;
       alpha: number;
       decay: number;
+      hue: number; // For yellow variations
+      isGroundDust: boolean;
     }
 
-    const particles: Particle[] = [];
+    const particles: SmokeParticle[] = [];
     let isRunning = true;
 
     const render = () => {
       if (!isRunning) return;
       ctx.clearRect(0, 0, width, height);
 
-      // Current loader X in pixels (moving right to left)
-      const loaderPx = (loaderPosition / 100) * width;
-      const groundY = height * 0.72;
+      // 1. Visibly emit yellow exhaust smoke specifically from the loader's exhaust pipe tip
+      if (exhaustRef.current && loaderPosition > -30 && loaderPosition < 110) {
+        const rect = exhaustRef.current.getBoundingClientRect();
+        const stackX = rect.left + rect.width / 2;
+        const stackY = rect.top + rect.height / 2;
 
-      // Spawn sand & dust particles in front of the bucket (left of loader)
-      if (loaderPosition > -10 && loaderPosition < 105) {
-        const bucketX = loaderPx - 50; // In front of the loader bucket
-        for (let i = 0; i < 7; i++) {
-          const isDust = Math.random() > 0.4;
-          particles.push({
-            x: bucketX + (Math.random() - 0.5) * 40,
-            y: groundY + (Math.random() - 0.5) * 30,
-            vx: -Math.random() * 5 - 2, // propelled forward/left
-            vy: -Math.random() * 4 - 0.5, // rising upward
-            size: isDust ? Math.random() * 25 + 15 : Math.random() * 4 + 1.5,
-            color: isDust ? 'rgba(180, 160, 120,' : 'rgba(245, 196, 0,',
-            alpha: isDust ? 0.35 : 0.8,
-            decay: isDust ? 0.006 : 0.015,
-          });
+        if (stackX > -50 && stackX < width + 50) {
+          // Emit 3-5 yellow smoke particles per frame from the exhaust pipe
+          for (let i = 0; i < 4; i++) {
+            particles.push({
+              x: stackX + (Math.random() - 0.5) * 8,
+              y: stackY + (Math.random() - 0.5) * 6,
+              // Machine moves right-to-left, so exhaust smoke pushes backwards (positive X)
+              vx: Math.random() * 2.8 + 2.0,
+              // Hot exhaust gas ascends upward
+              vy: -Math.random() * 2.5 - 1.2,
+              size: Math.random() * 6 + 6,
+              maxSize: Math.random() * 80 + 50,
+              growth: Math.random() * 1.4 + 0.8,
+              alpha: Math.random() * 0.35 + 0.45,
+              decay: Math.random() * 0.007 + 0.005,
+              hue: Math.random() > 0.5 ? 46 : 48, // 46-48 = #F5C400 Industrial Yellow
+              isGroundDust: false,
+            });
+          }
+
+          // Subtle ground tire dust
+          if (Math.random() > 0.3) {
+            const groundY = rect.bottom + 65;
+            particles.push({
+              x: stackX + (Math.random() - 0.5) * 40,
+              y: groundY,
+              vx: Math.random() * 2.5 + 1.0,
+              vy: -Math.random() * 1.5 - 0.5,
+              size: Math.random() * 12 + 10,
+              maxSize: Math.random() * 45 + 30,
+              growth: Math.random() * 0.8 + 0.4,
+              alpha: 0.25,
+              decay: 0.009,
+              hue: 42, // Sandier dust
+              isGroundDust: true,
+            });
+          }
         }
       }
 
-      // Update and draw particles
+      // 2. Update and render particles
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.x += p.vx;
         p.y += p.vy;
+
+        // Atmospheric air resistance
+        p.vx *= 0.985;
+        p.vy *= 0.985;
+
+        // Smoke expands continuously as it dissipates
+        if (p.size < p.maxSize) {
+          p.size += p.growth;
+        }
+
         p.alpha -= p.decay;
 
         if (p.alpha <= 0) {
@@ -150,7 +184,21 @@ export default function CinematicIntro({
           continue;
         }
 
-        ctx.fillStyle = `${p.color}${p.alpha})`;
+        // Draw soft, glowing volumetric smoke puff
+        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+        if (p.isGroundDust) {
+          grad.addColorStop(0, `hsla(${p.hue}, 60%, 45%, ${p.alpha * 0.8})`);
+          grad.addColorStop(0.6, `hsla(${p.hue}, 50%, 35%, ${p.alpha * 0.4})`);
+          grad.addColorStop(1, `hsla(${p.hue}, 50%, 30%, 0)`);
+        } else {
+          // Yellow Exhaust Smoke
+          grad.addColorStop(0, `hsla(${p.hue}, 100%, 55%, ${p.alpha * 1.0})`);
+          grad.addColorStop(0.35, `hsla(${p.hue}, 95%, 48%, ${p.alpha * 0.7})`);
+          grad.addColorStop(0.75, `hsla(${p.hue - 4}, 90%, 42%, ${p.alpha * 0.25})`);
+          grad.addColorStop(1, `hsla(${p.hue}, 90%, 35%, 0)`);
+        }
+
+        ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
@@ -169,225 +217,274 @@ export default function CinematicIntro({
 
   const handleComplete = () => {
     setFadingOut(true);
-    sessionStorage.setItem('altayeb_intro_seen', 'true');
+    try {
+      sessionStorage.setItem('altayeb_intro_seen', 'true');
+    } catch {
+      // storage disabled
+    }
     setTimeout(() => {
       setShow(false);
-    }, 800);
+    }, 850);
   };
 
   if (!show) return null;
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] bg-[#080808] flex flex-col items-center justify-center overflow-hidden transition-opacity duration-800 ${
+      className={`fixed inset-0 z-[9999] bg-[#080808] text-white flex flex-col items-center justify-center overflow-hidden transition-opacity duration-800 cinematic-intro-wrapper ${
         fadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      {/* Skip button */}
+      {/* Skip Intro Button */}
       <button
+        type="button"
         onClick={handleComplete}
-        className="absolute top-6 right-6 z-50 flex items-center gap-2 bg-[#151515]/80 hover:bg-[#F5C400] text-gray-300 hover:text-black border border-[#333] hover:border-[#F5C400] px-4 py-2 rounded-full text-xs font-semibold backdrop-blur-md transition-all shadow-lg cursor-pointer"
+        className="absolute top-6 right-6 z-50 flex items-center gap-2 bg-[#151515]/85 hover:bg-[#F5C400] text-gray-200 hover:text-black border border-[#333] hover:border-[#F5C400] px-4 py-2 rounded-full text-xs font-bold backdrop-blur-md transition-all shadow-xl cursor-pointer"
+        aria-label="Skip Intro"
       >
-        <span>تخطي / Skip Intro</span>
+        <span>تخطي العرض / Skip Intro</span>
         <FastForward className="w-3.5 h-3.5" />
       </button>
 
-      {/* Particle Canvas for Sand, Dust & Smoke */}
+      {/* Atmospheric Smoke & Particle Canvas */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full pointer-events-none z-10"
       />
 
-      {/* Atmospheric Industrial Fog Lighting */}
+      {/* Atmospheric Industrial Ambient Glow */}
       <div className="absolute inset-0 pointer-events-none z-0">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-[#F5C400]/10 rounded-full blur-[140px] opacity-70"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] sm:w-[1000px] h-[450px] bg-[#F5C400]/12 rounded-full blur-[160px] opacity-80 pointer-events-none"></div>
       </div>
 
-      {/* Center Cinematic Showroom Reveal */}
-      <div className="relative z-20 flex flex-col items-center text-center px-6 max-w-4xl select-none">
-        {/* Yellow Glass Accent Line */}
+      {/* CENTER REVEAL: Showroom Name & Logo */}
+      <div className="relative z-20 flex flex-col items-center text-center px-4 max-w-4xl select-none">
+        {/* Accent Golden Line */}
         <div
           className={`h-1 bg-gradient-to-r from-transparent via-[#F5C400] to-transparent transition-all duration-1000 ${
-            revealText ? 'w-48 opacity-100 mb-6' : 'w-0 opacity-0 mb-0'
+            revealName ? 'w-48 sm:w-64 opacity-100 mb-5' : 'w-0 opacity-0 mb-0'
           }`}
         ></div>
 
-        {/* Showroom Title (Arabic) */}
-        <h1
-          className={`text-4xl sm:text-6xl md:text-7xl font-black text-white tracking-wide transition-all duration-1000 transform ${
-            revealText
-              ? 'opacity-100 translate-y-0 filter blur-0'
-              : 'opacity-0 translate-y-8 filter blur-sm'
-          }`}
-          style={{ textShadow: '0 0 40px rgba(245, 196, 0, 0.4)' }}
-        >
-          {siteNameAr}
-        </h1>
-
-        {/* English Title */}
-        <p
-          className={`text-sm sm:text-lg md:text-xl font-bold uppercase tracking-[0.25em] text-[#F5C400] mt-3 transition-all duration-1000 delay-200 transform ${
-            revealText ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        {/* 1. Showroom Name Reveal (معرض الطيب) with Distinctive Bold Arabic Typography */}
+        <div
+          className={`transition-all duration-1000 transform ${
+            revealName
+              ? 'opacity-100 translate-y-0 scale-100'
+              : 'opacity-0 translate-y-10 scale-95'
           }`}
         >
-          {siteNameEn}
-        </p>
-
-        {/* Showroom Logo Underneath */}
-        {logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={logoUrl}
-            alt="Al Tayeb Showroom Logo"
-            className={`h-16 md:h-20 object-contain mt-6 transition-all duration-700 transform ${
-              revealLogo
-                ? 'opacity-100 scale-100 filter drop-shadow-[0_0_20px_rgba(245,196,0,0.3)]'
-                : 'opacity-0 scale-90'
-            }`}
-          />
-        ) : (
-          <div
-            className={`mt-6 px-5 py-2 rounded-xl bg-[#151515] border border-[#F5C400]/30 text-xs font-semibold text-gray-300 transition-all duration-700 transform ${
-              revealLogo ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
-            }`}
+          <h1
+            className="text-4xl sm:text-6xl md:text-7xl font-black tracking-wide leading-tight"
+            style={{
+              fontFamily: "'Noto Kufi Arabic', 'Cairo', 'Tajawal', sans-serif",
+              background: 'linear-gradient(180deg, #FFFFFF 0%, #FFF4CC 35%, #F5C400 70%, #D4A000 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0 0 35px rgba(245, 196, 0, 0.5)) drop-shadow(0 4px 15px rgba(0, 0, 0, 0.9))',
+            }}
           >
-            <span className="text-[#F5C400]">★</span> PREMIER HEAVY MACHINERY SHOWROOM <span className="text-[#F5C400]">★</span>
+            معرض الطيب
+          </h1>
+
+          <p className="text-xs sm:text-sm md:text-base font-extrabold uppercase tracking-[0.3em] text-[#F5C400] mt-2 drop-shadow-md">
+            {siteNameEn}
+          </p>
+        </div>
+
+        {/* 2. Logo Reveal: Horizontal Rectangular Composition with Industrial Yellow Aesthetics */}
+        <div
+          className={`mt-6 sm:mt-8 transition-all duration-1000 delay-150 transform ${
+            revealLogo
+              ? 'opacity-100 translate-y-0 scale-100'
+              : 'opacity-0 translate-y-10 scale-90'
+          }`}
+        >
+          <div className="relative group rounded-xl bg-gradient-to-b from-[#F5C400] to-[#E5B200] p-1 shadow-[0_0_50px_rgba(245,196,0,0.35)] border border-[#FFD429]">
+            {/* Horizontal Rectangular Card */}
+            <div className="bg-[#0D0D0D] rounded-[10px] px-6 sm:px-10 py-3.5 sm:py-4 flex items-center justify-center gap-4 sm:gap-6 border border-[#2a2a2a]">
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoUrl}
+                  alt={siteNameAr}
+                  className="h-12 sm:h-16 md:h-18 max-w-[240px] sm:max-w-[320px] object-contain drop-shadow"
+                />
+              ) : (
+                <div className="flex items-center gap-3.5 sm:gap-5">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-[#F5C400] text-black font-black flex items-center justify-center text-xl sm:text-2xl shadow-md">
+                    ط
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm sm:text-base font-black text-white leading-tight">
+                      {siteNameAr}
+                    </p>
+                    <p className="text-[10px] sm:text-xs text-[#F5C400] font-bold tracking-wider uppercase">
+                      HEAVY MACHINERY SHOWROOM
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Industrial Accent Badges */}
+              <div className="hidden sm:flex flex-col border-r border-[#333] pr-4 rtl:border-r-0 rtl:border-l rtl:pr-0 rtl:pl-4">
+                <span className="text-[10px] font-black text-[#F5C400] tracking-widest uppercase">
+                  EST. 1995
+                </span>
+                <span className="text-[9px] font-semibold text-gray-400">
+                  ORIGINAL FLEET
+                </span>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Realistic Heavy Wheel Loader SVG Animation */}
+      {/* 3. High-Fidelity Wheel Loader SVG Moving Right to Left */}
       <div
-        className="absolute bottom-[8%] z-15 pointer-events-none transform -translate-y-1/2 will-change-transform"
+        className="absolute bottom-[6%] z-15 pointer-events-none transform -translate-y-1/2 will-change-transform"
         style={{
           left: `${loaderPosition}%`,
-          transform: 'translateX(0) scaleX(-1)', // Flip horizontally so it faces left while moving right-to-left
+          transform: 'translateX(0) scaleX(-1)', // Mirrored so bucket faces forward (LEFT)
         }}
       >
-        {/* Wheel Loader SVG Graphic */}
-        <div className="relative w-[340px] sm:w-[480px] h-[180px] sm:h-[240px]">
+        <div className="relative w-[340px] sm:w-[480px] md:w-[540px] h-[180px] sm:h-[250px] md:h-[280px]">
+          {/* Exhaust Pipe Tip Anchor for Screen Coordinate Sampling */}
+          {/* In SVG space (600x320), stack mouth is at x=145, y=78. In container: left: 24.17%, top: 24.37% */}
+          <div
+            ref={exhaustRef}
+            className="absolute w-3 h-3 pointer-events-none"
+            style={{
+              left: '24.17%',
+              top: '24.37%',
+            }}
+          />
+
           <svg
             viewBox="0 0 600 320"
-            className="w-full h-full filter drop-shadow-[0_15px_30px_rgba(0,0,0,0.9)]"
+            className="w-full h-full filter drop-shadow-[0_20px_35px_rgba(0,0,0,0.95)]"
             xmlns="http://www.w3.org/2000/svg"
           >
             {/* Ground Shadow */}
-            <ellipse cx="300" cy="285" rx="260" ry="20" fill="rgba(0,0,0,0.6)" />
+            <ellipse cx="300" cy="290" rx="270" ry="18" fill="rgba(0,0,0,0.7)" />
 
             {/* Rear Chassis & Engine Compartment */}
             <path
-              d="M60 210 L100 130 L220 130 L250 170 L250 220 L60 220 Z"
+              d="M50 215 L95 125 L225 125 L255 170 L255 225 L50 225 Z"
               fill="#E5B200"
               stroke="#B38A00"
-              strokeWidth="3"
+              strokeWidth="3.5"
             />
-            {/* Engine Hood Grill */}
-            <rect x="75" y="145" width="40" height="25" rx="3" fill="#151515" />
-            <line x1="85" y1="145" x2="85" y2="170" stroke="#333" strokeWidth="2" />
-            <line x1="95" y1="145" x2="95" y2="170" stroke="#333" strokeWidth="2" />
-            <line x1="105" y1="145" x2="105" y2="170" stroke="#333" strokeWidth="2" />
+            {/* Engine Hood Louver Grills */}
+            <rect x="70" y="140" width="45" height="28" rx="4" fill="#151515" stroke="#333" strokeWidth="1.5" />
+            <line x1="82" y1="140" x2="82" y2="168" stroke="#F5C400" strokeWidth="2" opacity="0.6" />
+            <line x1="92" y1="140" x2="92" y2="168" stroke="#F5C400" strokeWidth="2" opacity="0.6" />
+            <line x1="102" y1="140" x2="102" y2="168" stroke="#F5C400" strokeWidth="2" opacity="0.6" />
 
-            {/* Exhaust Pipe & Smoke */}
-            <rect x="140" y="80" width="10" height="50" rx="2" fill="#222" />
-            <ellipse cx="145" cy="80" rx="6" ry="3" fill="#555" />
+            {/* Heavy Vertical Exhaust Stack Pipe (Chimney) */}
+            <rect x="139" y="78" width="12" height="48" rx="2" fill="#1c1c1c" stroke="#333" strokeWidth="1.5" />
+            {/* Exhaust Pipe Rim Opening */}
+            <ellipse cx="145" cy="78" rx="7" ry="3.5" fill="#555" stroke="#F5C400" strokeWidth="1" />
+            {/* Glowing Heat at Stack Tip */}
+            <ellipse cx="145" cy="78" rx="4" ry="2" fill="#F5C400" opacity="0.7" />
 
-            {/* Cab Structure (Glassmorphism & Roll Cage) */}
+            {/* Cab Structure (Heavy Roll Cage & Glass) */}
             <path
-              d="M210 130 L250 70 L340 70 L330 170 L240 170 Z"
-              fill="#1A1A1A"
+              d="M210 128 L250 65 L345 65 L335 170 L240 170 Z"
+              fill="#181818"
               stroke="#F5C400"
               strokeWidth="4"
             />
-            {/* Cab Windows */}
+            {/* Cab Glass Window */}
             <path
-              d="M255 78 L330 78 L322 135 L230 135 Z"
-              fill="rgba(56, 189, 248, 0.25)"
-              stroke="rgba(255,255,255,0.4)"
+              d="M255 72 L336 72 L328 135 L232 135 Z"
+              fill="rgba(56, 189, 248, 0.3)"
+              stroke="rgba(255, 255, 255, 0.5)"
               strokeWidth="2"
             />
-            {/* Cab Interior Operator Silhouette */}
-            <circle cx="280" cy="105" r="12" fill="#111" />
-            <path d="M265 135 C265 120, 295 120, 295 135 Z" fill="#111" />
+            {/* Operator Silhouette */}
+            <circle cx="282" cy="100" r="13" fill="#0D0D0D" />
+            <path d="M266 135 C266 118, 298 118, 298 135 Z" fill="#0D0D0D" />
 
-            {/* Articulation Joint */}
-            <circle cx="260" cy="205" r="16" fill="#333" stroke="#555" strokeWidth="3" />
-            <circle cx="260" cy="205" r="7" fill="#F5C400" />
+            {/* Central Articulation Joint & Pins */}
+            <circle cx="260" cy="205" r="18" fill="#222" stroke="#444" strokeWidth="3" />
+            <circle cx="260" cy="205" r="8" fill="#F5C400" />
 
             {/* Front Boom Lift Arms */}
             <path
-              d="M260 190 L440 180 L420 160 L270 170 Z"
+              d="M260 190 L450 175 L430 155 L270 168 Z"
               fill="#F5C400"
               stroke="#B38A00"
-              strokeWidth="3"
+              strokeWidth="3.5"
             />
-            {/* Secondary Hydraulic Tilt Ram */}
+            {/* Secondary Hydraulic Tilt Ram Linkage */}
             <path
-              d="M310 150 L420 110 L410 100 L300 140 Z"
+              d="M310 148 L430 105 L420 95 L300 138 Z"
               fill="#222"
               stroke="#444"
               strokeWidth="2"
             />
-            {/* Hydraulic Cylinder */}
+            {/* Hydraulic Chrome Cylinder */}
             <rect
               x="320"
-              y="130"
-              width="60"
-              height="14"
+              y="126"
+              width="68"
+              height="15"
               rx="4"
-              fill="#Silver"
-              stroke="#999"
-              strokeWidth="1.5"
+              fill="#E0E0E0"
+              stroke="#888"
+              strokeWidth="2"
             />
 
-            {/* Heavy Front Bucket (Scoop) */}
+            {/* Massive Front Digging Bucket (Scoop) */}
             <path
-              d="M430 180 L520 150 L560 210 L500 245 L415 220 Z"
+              d="M440 178 L535 145 L575 210 L510 250 L425 222 Z"
               fill="#D9A300"
               stroke="#997300"
               strokeWidth="4"
             />
-            {/* Bucket Teeth (High-tensile steel cutting edge) */}
-            <polygon points="560,210 575,215 565,225" fill="#333" stroke="#222" />
-            <polygon points="545,220 560,225 550,235" fill="#333" stroke="#222" />
-            <polygon points="530,230 545,235 535,245" fill="#333" stroke="#222" />
-            <polygon points="515,240 530,245 520,255" fill="#333" stroke="#222" />
+            {/* Heavy Reinforced Bucket Digging Teeth */}
+            <polygon points="575,210 592,215 580,226" fill="#222" stroke="#111" strokeWidth="1.5" />
+            <polygon points="560,220 577,225 565,236" fill="#222" stroke="#111" strokeWidth="1.5" />
+            <polygon points="545,230 562,235 550,246" fill="#222" stroke="#111" strokeWidth="1.5" />
+            <polygon points="530,240 547,245 535,256" fill="#222" stroke="#111" strokeWidth="1.5" />
 
-            {/* Massive Deep-Tread Wheels & Hubs */}
+            {/* Massive Industrial Wheels with Aggressive Deep Treads */}
             {/* Rear Wheel */}
             <g>
-              <circle cx="150" cy="235" r="50" fill="#1C1C1C" stroke="#111" strokeWidth="5" />
-              <circle cx="150" cy="235" r="32" fill="#E5B200" stroke="#B38A00" strokeWidth="3" />
-              {/* Rim Bolt circle */}
-              <circle cx="150" cy="235" r="14" fill="#333" />
-              <circle cx="150" cy="225" r="3" fill="#FFF" />
-              <circle cx="150" cy="245" r="3" fill="#FFF" />
-              <circle cx="140" cy="235" r="3" fill="#FFF" />
-              <circle cx="160" cy="235" r="3" fill="#FFF" />
+              <circle cx="150" cy="235" r="54" fill="#141414" stroke="#000" strokeWidth="6" />
+              <circle cx="150" cy="235" r="34" fill="#E5B200" stroke="#B38A00" strokeWidth="3" />
+              <circle cx="150" cy="235" r="16" fill="#222" />
+              {/* Rim Bolts */}
+              <circle cx="150" cy="223" r="3.5" fill="#FFF" />
+              <circle cx="150" cy="247" r="3.5" fill="#FFF" />
+              <circle cx="138" cy="235" r="3.5" fill="#FFF" />
+              <circle cx="162" cy="235" r="3.5" fill="#FFF" />
             </g>
 
             {/* Front Wheel */}
             <g>
-              <circle cx="370" cy="235" r="50" fill="#1C1C1C" stroke="#111" strokeWidth="5" />
-              <circle cx="370" cy="235" r="32" fill="#E5B200" stroke="#B38A00" strokeWidth="3" />
-              {/* Rim Bolt circle */}
-              <circle cx="370" cy="235" r="14" fill="#333" />
-              <circle cx="370" cy="225" r="3" fill="#FFF" />
-              <circle cx="370" cy="245" r="3" fill="#FFF" />
-              <circle cx="360" cy="235" r="3" fill="#FFF" />
-              <circle cx="380" cy="235" r="3" fill="#FFF" />
+              <circle cx="375" cy="235" r="54" fill="#141414" stroke="#000" strokeWidth="6" />
+              <circle cx="375" cy="235" r="34" fill="#E5B200" stroke="#B38A00" strokeWidth="3" />
+              <circle cx="375" cy="235" r="16" fill="#222" />
+              {/* Rim Bolts */}
+              <circle cx="375" cy="223" r="3.5" fill="#FFF" />
+              <circle cx="375" cy="247" r="3.5" fill="#FFF" />
+              <circle cx="363" cy="235" r="3.5" fill="#FFF" />
+              <circle cx="387" cy="235" r="3.5" fill="#FFF" />
             </g>
 
-            {/* Working Headlights Beam */}
+            {/* Working Powerful Headlights Beam */}
             <polygon
-              points="440,150 590,130 590,260 440,170"
-              fill="url(#headlightGlow)"
-              opacity="0.35"
+              points="450,145 600,120 600,270 450,170"
+              fill="url(#headlightBeam)"
+              opacity="0.45"
             />
 
             <defs>
-              <linearGradient id="headlightGlow" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#FFF" stopOpacity="0.8" />
-                <stop offset="30%" stopColor="#F5C400" stopOpacity="0.5" />
+              <linearGradient id="headlightBeam" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
+                <stop offset="30%" stopColor="#F5C400" stopOpacity="0.6" />
                 <stop offset="100%" stopColor="#F5C400" stopOpacity="0" />
               </linearGradient>
             </defs>
@@ -395,8 +492,8 @@ export default function CinematicIntro({
         </div>
       </div>
 
-      {/* Ground Line / Dark Terrain Edge */}
-      <div className="absolute bottom-0 inset-x-0 h-[10%] bg-gradient-to-t from-black via-[#0D0D0D] to-transparent border-t border-[#222]"></div>
+      {/* Bottom Ground Border Line */}
+      <div className="absolute bottom-0 inset-x-0 h-[8%] bg-gradient-to-t from-black via-[#080808] to-transparent border-t border-[#1C1C1C]"></div>
     </div>
   );
 }
