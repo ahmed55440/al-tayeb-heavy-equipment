@@ -2,12 +2,28 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
-const DB_PATH = path.join(process.cwd(), 'database', 'altayeb.db');
+const isVercel = Boolean(process.env.VERCEL);
+const DB_PATH = isVercel
+  ? path.join('/tmp', 'altayeb.db')
+  : path.join(process.cwd(), 'database', 'altayeb.db');
 
-// Ensure database directory exists
-const dbDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+// Ensure database directory exists or copy to /tmp for Vercel
+if (isVercel) {
+  if (!fs.existsSync(DB_PATH)) {
+    const sourceDb = path.join(process.cwd(), 'database', 'altayeb.db');
+    if (fs.existsSync(sourceDb)) {
+      try {
+        fs.copyFileSync(sourceDb, DB_PATH);
+      } catch (e) {
+        console.error('Error copying db to /tmp:', e);
+      }
+    }
+  }
+} else {
+  const dbDir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
 }
 
 let db: Database.Database;
